@@ -848,6 +848,25 @@ export const Dashboard: React.FC = () => {
     }));
   };
 
+  const updateSectionAnimation = <K extends keyof SiteConfig['animation']['sections']>(
+    section: K,
+    patch: Partial<SiteConfig['animation']['sections'][K]>,
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      animation: {
+        ...prev.animation,
+        sections: {
+          ...prev.animation.sections,
+          [section]: {
+            ...prev.animation.sections[section],
+            ...patch,
+          },
+        },
+      },
+    }));
+  };
+
   const updateVisibility = <K extends keyof SiteConfig['visibility']>(key: K, value: SiteConfig['visibility'][K]) => {
     updateConfig((prev) => ({
       ...prev,
@@ -3924,9 +3943,243 @@ export const Dashboard: React.FC = () => {
                   }));
                 }}
                 className="rounded-[10px] border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
-              >
-                Reset All Animation Presets
-              </button>
+                  >
+                    Reset All Animation Presets
+                  </button>
+                </Card>
+
+            <Card title="Section Motion" subtitle="Toggle cinematic text + card reveals by surface">
+              <div className="space-y-4">
+                <div className="rounded-[12px] border border-white/10 bg-white/5 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/90">About Overlay</p>
+                      <p className="text-xs text-white/55">Sequential hero text, skills rain, rotating certificates</p>
+                    </div>
+                    <Toggle
+                      label="Enable"
+                      checked={siteConfig.animation.sections.about.enabled}
+                      onChange={(next) => updateSectionAnimation('about', { enabled: next })}
+                    />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1 text-white/80">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Text Sequence</span>
+                      <select
+                        value={siteConfig.animation.sections.about.textSequenceStyle}
+                        onChange={(e) =>
+                          updateSectionAnimation('about', {
+                            textSequenceStyle: e.target.value as SiteConfig['animation']['sections']['about']['textSequenceStyle'],
+                          })
+                        }
+                        className="rounded-[10px] border border-white/14 bg-black/25 px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+                      >
+                        <option value="beam">Beam reveal</option>
+                        <option value="typewriter">Typewriter</option>
+                        <option value="slice">Slice</option>
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-white/80">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Card Entrance</span>
+                      <select
+                        value={siteConfig.animation.sections.about.cardEntranceStyle}
+                        onChange={(e) =>
+                          updateSectionAnimation('about', {
+                            cardEntranceStyle: e.target.value as SiteConfig['animation']['sections']['about']['cardEntranceStyle'],
+                          })
+                        }
+                        className="rounded-[10px] border border-white/14 bg-black/25 px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+                      >
+                        <option value="stack">Stacked</option>
+                        <option value="orbit">Orbital</option>
+                        <option value="slide">Slide</option>
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-white/80">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Text Rhythm</span>
+                      <select
+                        value={siteConfig.animation.sections.about.textRhythm}
+                        onChange={(e) =>
+                          updateSectionAnimation('about', {
+                            textRhythm: e.target.value as SiteConfig['animation']['sections']['about']['textRhythm'],
+                          })
+                        }
+                        className="rounded-[10px] border border-white/14 bg-black/25 px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+                      >
+                        <option value="tight">Tight</option>
+                        <option value="balanced">Balanced</option>
+                        <option value="linger">Linger</option>
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-white/80">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Certificate Rhythm</span>
+                      <select
+                        value={siteConfig.animation.sections.about.certificationRhythm}
+                        onChange={(e) =>
+                          updateSectionAnimation('about', {
+                            certificationRhythm: e.target.value as SiteConfig['animation']['sections']['about']['certificationRhythm'],
+                          })
+                        }
+                        className="rounded-[10px] border border-white/14 bg-black/25 px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+                      >
+                        <option value="tight">Tight</option>
+                        <option value="balanced">Balanced</option>
+                        <option value="linger">Linger</option>
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-white/80">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Skill Motion</span>
+                      <select
+                        value={siteConfig.animation.sections.about.skillMode}
+                        onChange={(e) =>
+                          updateSectionAnimation('about', {
+                            skillMode: e.target.value as SiteConfig['animation']['sections']['about']['skillMode'],
+                          })
+                        }
+                        className="rounded-[10px] border border-white/14 bg-black/25 px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+                      >
+                        <option value="rain">Rain</option>
+                        <option value="tiles">Tiles</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="rounded-[12px] border border-white/10 bg-white/5 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/90">Projects Grid</p>
+                      <p className="text-xs text-white/55">Staggered cards and parallax hover</p>
+                    </div>
+                    <Toggle
+                      label="Enable"
+                      checked={siteConfig.animation.sections.projects.enabled}
+                      onChange={(next) => updateSectionAnimation('projects', { enabled: next })}
+                    />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1 text-white/80">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Entrance</span>
+                      <select
+                        value={siteConfig.animation.sections.projects.cardEntranceStyle}
+                        onChange={(e) =>
+                          updateSectionAnimation('projects', {
+                            cardEntranceStyle: e.target.value as SiteConfig['animation']['sections']['projects']['cardEntranceStyle'],
+                          })
+                        }
+                        className="rounded-[10px] border border-white/14 bg-black/25 px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+                      >
+                        <option value="tilt">Tilt</option>
+                        <option value="drift">Drift</option>
+                        <option value="rise">Rise</option>
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-white/80">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Depth</span>
+                      <select
+                        value={siteConfig.animation.sections.projects.gridDepth}
+                        onChange={(e) =>
+                          updateSectionAnimation('projects', {
+                            gridDepth: e.target.value as SiteConfig['animation']['sections']['projects']['gridDepth'],
+                          })
+                        }
+                        className="rounded-[10px] border border-white/14 bg-black/25 px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+                      >
+                        <option value="tight">Tight</option>
+                        <option value="balanced">Balanced</option>
+                        <option value="linger">Linger</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-3 rounded-[10px] border border-white/10 bg-black/20 px-3 py-2">
+                    <p className="text-xs text-white/70">Enable parallax hover</p>
+                    <Toggle
+                      label="Parallax"
+                      checked={siteConfig.animation.sections.projects.hoverParallax}
+                      onChange={(next) => updateSectionAnimation('projects', { hoverParallax: next })}
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-[12px] border border-white/10 bg-white/5 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/90">Testimonials</p>
+                      <p className="text-xs text-white/55">Slider motion and timing</p>
+                    </div>
+                    <Toggle
+                      label="Enable"
+                      checked={siteConfig.animation.sections.testimonials.enabled}
+                      onChange={(next) => updateSectionAnimation('testimonials', { enabled: next })}
+                    />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1 text-white/80">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">Transition</span>
+                      <select
+                        value={siteConfig.animation.sections.testimonials.transitionStyle}
+                        onChange={(e) =>
+                          updateSectionAnimation('testimonials', {
+                            transitionStyle: e.target.value as SiteConfig['animation']['sections']['testimonials']['transitionStyle'],
+                          })
+                        }
+                        className="rounded-[10px] border border-white/14 bg-black/25 px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+                      >
+                        <option value="fade">Fade</option>
+                        <option value="slide">Slide</option>
+                        <option value="flip">Flip</option>
+                      </select>
+                    </label>
+
+                    <Input
+                      label="Autoplay (ms)"
+                      type="number"
+                      min={1500}
+                      max={15000}
+                      step={100}
+                      value={siteConfig.animation.sections.testimonials.autoPlayMs}
+                      onChange={(next) =>
+                        updateSectionAnimation('testimonials', {
+                          autoPlayMs: toSafeNumberInRange(
+                            next,
+                            siteConfig.animation.sections.testimonials.autoPlayMs,
+                            1500,
+                            15000,
+                          ),
+                        })
+                      }
+                    />
+
+                    <Input
+                      label="Float Intensity"
+                      type="number"
+                      min={0}
+                      max={1.2}
+                      step={0.05}
+                      value={siteConfig.animation.sections.testimonials.floatIntensity}
+                      onChange={(next) =>
+                        updateSectionAnimation('testimonials', {
+                          floatIntensity: toSafeNumberInRange(
+                            next,
+                            siteConfig.animation.sections.testimonials.floatIntensity,
+                            0,
+                            1.2,
+                          ),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
             </Card>
 
             <Card title="Live Animation Preview" subtitle="Hover this area and test the selected cursor animation">

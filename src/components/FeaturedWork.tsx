@@ -17,6 +17,7 @@ const isPlaceholderHref = (href: string) => href.trim() === '#';
 export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
   const { siteConfig } = useSiteConfig();
   const { featured, visibility, designSystem } = siteConfig;
+  const projectAnimations = siteConfig.animation.sections.projects;
   const projects = useMemo(() => siteConfig.projects.filter((project) => project.visible), [siteConfig.projects]);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -42,25 +43,56 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
     let refreshTimer = 0;
 
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ delay: 0.56 });
+      const stagger =
+        projectAnimations.gridDepth === 'tight'
+          ? 0.08
+          : projectAnimations.gridDepth === 'linger'
+            ? 0.18
+            : 0.12;
+      const distance = projectAnimations.cardEntranceStyle === 'tilt' ? 120 : projectAnimations.cardEntranceStyle === 'drift' ? 90 : 70;
+      const rotationX = projectAnimations.cardEntranceStyle === 'tilt' ? 14 : projectAnimations.cardEntranceStyle === 'rise' ? 0 : 8;
+      const baseDuration =
+        projectAnimations.gridDepth === 'linger'
+          ? 1.55
+          : projectAnimations.gridDepth === 'tight'
+            ? 1.05
+            : 1.25;
 
-      tl.fromTo(
-        '.fw-header-text',
-        { y: 70, opacity: 0, rotationX: 12, transformOrigin: '0% 50% -40' },
-        { y: 0, opacity: 1, rotationX: 0, duration: 1.6, ease: 'expo.out', stagger: 0.12 },
-      );
+      if (projectAnimations.enabled) {
+        const tl = gsap.timeline({ delay: 0.56 });
+        tl.fromTo(
+          '.fw-header-text',
+          { y: distance * 0.5, opacity: 0, rotationX, transformOrigin: '0% 50% -40' },
+          { y: 0, opacity: 1, rotationX: 0, duration: baseDuration, ease: 'expo.out', stagger: 0.12 },
+        );
+      } else {
+        gsap.set('.fw-header-text', { opacity: 1, y: 0, rotationX: 0 });
+      }
 
       const elements = gsap.utils.toArray<HTMLElement>('.fw-reveal', containerRef.current);
-      elements.forEach((el) => {
+      elements.forEach((el, index) => {
+        if (!projectAnimations.enabled) {
+          gsap.set(el, { opacity: 1, y: 0, scale: 1, rotationX: 0, rotateY: 0 });
+          return;
+        }
+
+        const startConfig =
+          projectAnimations.cardEntranceStyle === 'tilt'
+            ? { y: distance, opacity: 0, scale: 0.96, rotationX: rotationX + 2, rotateY: index % 2 === 0 ? -8 : 8 }
+            : projectAnimations.cardEntranceStyle === 'drift'
+              ? { y: distance * 0.8, opacity: 0, scale: 0.94, rotationX: rotationX - 2, rotateY: 0 }
+              : { y: distance * 0.6, opacity: 0, scale: 0.97, rotationX: rotationX / 2, rotateY: 0 };
+
         gsap.fromTo(
           el,
-          { y: 90, opacity: 0, scale: 0.95, rotationX: 6 },
+          startConfig,
           {
             y: 0,
             opacity: 1,
             scale: 1,
             rotationX: 0,
-            duration: 1.35,
+            rotateY: 0,
+            duration: baseDuration,
             ease: 'expo.out',
             scrollTrigger: {
               trigger: el,
@@ -68,11 +100,12 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
               start: 'top 86%',
               toggleActions: 'play none none reverse',
             },
+            stagger,
           },
         );
       });
 
-      if (visibility.testimonialsSection || visibility.featuredCtaSection) {
+      if (projectAnimations.enabled && (visibility.testimonialsSection || visibility.featuredCtaSection)) {
         gsap.to('.projects-wrapper', {
           x: '42%',
           opacity: 0,
@@ -103,6 +136,8 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
             },
           },
         );
+      } else if (!projectAnimations.enabled) {
+        gsap.set('.next-page-slide', { opacity: 1, x: 0 });
       }
 
       refreshTimer = window.setTimeout(() => ScrollTrigger.refresh(), 100);
@@ -119,6 +154,9 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
     visibility.featuredHeader,
     visibility.featuredProjectsGrid,
     visibility.testimonialsSection,
+    projectAnimations.cardEntranceStyle,
+    projectAnimations.enabled,
+    projectAnimations.gridDepth,
     projects.length,
   ]);
 
@@ -269,6 +307,13 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
     'light',
     'overflow-hidden p-4 md:p-5',
   )} ${getGlassClass(designSystem.components.globalGlassVariant, 'light')}`;
+  const projectCardMotionClass = projectAnimations.hoverParallax
+    ? 'transition-transform duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] hover:-translate-y-3 hover:shadow-[0_35px_60px_-25px_rgba(0,0,0,0.25)]'
+    : '';
+  const gridPerspective = projectAnimations.gridDepth === 'linger' ? '1600px' : '1200px';
+  const projectImageMotionClass = projectAnimations.hoverParallax
+    ? 'group-hover:scale-[1.12] group-hover:rotate-[0.35deg]'
+    : 'group-hover:scale-[1.08]';
 
   return (
     <div
@@ -307,18 +352,18 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
         ) : null}
 
         {visibility.featuredProjectsGrid ? (
-          <div className="grid grid-cols-1 gap-x-10 gap-y-14 md:grid-cols-2" style={{ perspective: '1600px' }}>
+          <div className="grid grid-cols-1 gap-x-10 gap-y-14 md:grid-cols-2" style={{ perspective: gridPerspective }}>
             {projects.map((project) => (
               <article
                 key={project.id}
-                className={`fw-reveal group opacity-0 ${projectCardClass}`}
-                style={{ transformOrigin: 'center bottom' }}
+                className={`fw-reveal group opacity-0 ${projectCardClass} ${projectCardMotionClass}`}
+                style={{ transformOrigin: 'center bottom', perspective: gridPerspective }}
               >
                 <div className="relative mb-6 aspect-[16/10] overflow-hidden rounded-[14px] border border-[#0f1219]/10 bg-[#0f1219]/4">
                   <img
                     src={project.img}
                     alt={project.title}
-                    className="h-full w-full object-cover transition-transform duration-[1.8s] ease-[cubic-bezier(0.19,1,0.22,1)] group-hover:scale-[1.08]"
+                    className={`h-full w-full object-cover transition-transform duration-[1.8s] ease-[cubic-bezier(0.19,1,0.22,1)] ${projectImageMotionClass}`}
                   />
                   <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(15,18,25,0.02),rgba(15,18,25,0.28))]" />
                 </div>

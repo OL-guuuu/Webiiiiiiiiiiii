@@ -14,6 +14,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
   const { siteConfig } = useSiteConfig();
   const testimonials = siteConfig.testimonials.filter((item) => item.visible);
   const dsComponents = siteConfig.designSystem.components;
+  const testimonialMotion = siteConfig.animation.sections.testimonials;
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   
@@ -27,17 +28,18 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
 
   // Added Autoplay functionality
   useEffect(() => {
-    if (!isActive || testimonials.length <= 1) return;
+    if (!isActive || testimonials.length <= 1 || !testimonialMotion.enabled) return;
 
+    const intervalMs = Math.max(1500, testimonialMotion.autoPlayMs);
     const interval = setInterval(() => {
       if (!isAnimating) {
         const nextIndex = (activeIndex + 1) % testimonials.length;
         changeTestimonial(nextIndex);
       }
-    }, 5000); // Change testimonial every 5 seconds
+    }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [isActive, isAnimating, activeIndex, testimonials.length]);
+  }, [isActive, isAnimating, activeIndex, testimonials.length, testimonialMotion.autoPlayMs, testimonialMotion.enabled]);
 
   // Entrance
   useEffect(() => {
@@ -48,8 +50,9 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
     const initTimer = setTimeout(() => {
       ctx = gsap.context(() => {
         // Subtle floating animation for the subtle quote icon
+        const floatStrength = 4 + testimonialMotion.floatIntensity * 10;
         gsap.to('.quote-mark', {
-          y: -5,
+          y: -floatStrength,
           duration: 3,
           yoyo: true,
           repeat: -1,
@@ -62,7 +65,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
       clearTimeout(initTimer);
       if (ctx) ctx.revert();
     };
-  }, [isActive]);
+  }, [isActive, testimonialMotion.floatIntensity]);
 
   const changeTestimonial = (index: number) => {
     if (testimonials.length === 0) return;
@@ -77,27 +80,59 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
 
     gsap.killTweensOf(contentRef.current);
 
+    const transition = testimonialMotion.transitionStyle;
+    const exitConfig =
+      transition === 'slide'
+        ? {
+            x: -40,
+            opacity: 0,
+            filter: 'blur(6px)',
+            duration: 0.55,
+            ease: 'power3.in',
+          }
+        : transition === 'flip'
+          ? {
+              rotationY: 30,
+              opacity: 0,
+              duration: 0.55,
+              ease: 'power2.in',
+              transformOrigin: 'center center',
+            }
+          : {
+              y: -20,
+              opacity: 0,
+              filter: 'blur(8px)',
+              rotationX: 10,
+              transformOrigin: 'center center',
+              duration: 0.7,
+              ease: 'power3.in',
+            };
+
+    const enterFrom =
+      transition === 'slide'
+        ? { x: 40, opacity: 0, filter: 'blur(8px)' }
+        : transition === 'flip'
+          ? { rotationY: -26, opacity: 0, scale: 0.96, transformOrigin: 'center center' }
+          : { y: 24, opacity: 0, filter: 'blur(10px)', rotationX: -10, transformOrigin: 'center center' };
+
+    const enterTo =
+      transition === 'flip'
+        ? { rotationY: 0, opacity: 1, scale: 1, duration: 1.1, ease: 'power3.out' }
+        : {
+            ...(transition === 'slide' ? { x: 0 } : { y: 0, rotationX: 0 }),
+            opacity: 1,
+            filter: 'blur(0px)',
+            duration: 1.05,
+            ease: 'power4.out',
+          };
+
     const tl = gsap.timeline({
-      onComplete: () => {
-        setActiveIndex(index);
-
-        gsap.fromTo(
-          contentRef.current,
-          { y: 20, opacity: 0, filter: 'blur(8px)', rotationX: -10, transformOrigin: 'center center' },
-          { y: 0, opacity: 1, filter: 'blur(0px)', rotationX: 0, duration: 1.4, ease: 'power4.out', onComplete: () => setIsAnimating(false) }
-        );
-      }
+      onComplete: () => setIsAnimating(false),
     });
 
-    tl.to(contentRef.current, {
-      y: -20,
-      opacity: 0,
-      filter: 'blur(8px)',
-      rotationX: 10,
-      transformOrigin: 'center center',
-      duration: 0.7,
-      ease: 'power3.in'
-    });
+    tl.to(contentRef.current, exitConfig);
+    tl.add(() => setActiveIndex(index));
+    tl.fromTo(contentRef.current, enterFrom, enterTo, '<');
   };
 
   const activeT = testimonials[activeIndex] ?? testimonials[0];
@@ -204,4 +239,3 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
     </div>
   );
 };
-

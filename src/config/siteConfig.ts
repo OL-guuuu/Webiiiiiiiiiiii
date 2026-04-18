@@ -181,6 +181,42 @@ export interface SiteCursorPlasmaConfig {
   smoothing: number;
 }
 
+export type SiteRhythmSetting = 'tight' | 'balanced' | 'linger';
+export type SiteTextSequenceStyle = 'typewriter' | 'beam' | 'slice';
+export type SiteAboutCardStyle = 'stack' | 'orbit' | 'slide';
+export type SiteProjectCardStyle = 'tilt' | 'drift' | 'rise';
+export type SiteTestimonialTransitionStyle = 'fade' | 'slide' | 'flip';
+export type SiteSkillDisplayMode = 'rain' | 'tiles';
+
+export interface SiteAboutAnimationSettings {
+  enabled: boolean;
+  textSequenceStyle: SiteTextSequenceStyle;
+  cardEntranceStyle: SiteAboutCardStyle;
+  textRhythm: SiteRhythmSetting;
+  certificationRhythm: SiteRhythmSetting;
+  skillMode: SiteSkillDisplayMode;
+}
+
+export interface SiteProjectsAnimationSettings {
+  enabled: boolean;
+  cardEntranceStyle: SiteProjectCardStyle;
+  gridDepth: SiteRhythmSetting;
+  hoverParallax: boolean;
+}
+
+export interface SiteTestimonialsAnimationSettings {
+  enabled: boolean;
+  transitionStyle: SiteTestimonialTransitionStyle;
+  autoPlayMs: number;
+  floatIntensity: number;
+}
+
+export interface SiteSectionAnimationConfig {
+  about: SiteAboutAnimationSettings;
+  projects: SiteProjectsAnimationSettings;
+  testimonials: SiteTestimonialsAnimationSettings;
+}
+
 export interface SiteVisibilityConfig {
   globalFrameOverlay: boolean;
   cursorAnimation: boolean;
@@ -435,6 +471,7 @@ export interface SiteConfig {
     spark: SiteCursorSparkConfig;
     beam: SiteCursorBeamConfig;
     plasma: SiteCursorPlasmaConfig;
+    sections: SiteSectionAnimationConfig;
   };
   cinematicSequence: SiteCinematicSequenceConfig;
   globalFrame: SiteGlobalFrameConfig;
@@ -1008,6 +1045,28 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       opacity: 0.3,
       smoothing: 0.16,
     },
+    sections: {
+      about: {
+        enabled: true,
+        textSequenceStyle: 'beam',
+        cardEntranceStyle: 'orbit',
+        textRhythm: 'balanced',
+        certificationRhythm: 'balanced',
+        skillMode: 'rain',
+      },
+      projects: {
+        enabled: true,
+        cardEntranceStyle: 'tilt',
+        gridDepth: 'balanced',
+        hoverParallax: true,
+      },
+      testimonials: {
+        enabled: true,
+        transitionStyle: 'fade',
+        autoPlayMs: 5200,
+        floatIntensity: 0.6,
+      },
+    },
   },
   cinematicSequence: {
     skipScene06Exit: false,
@@ -1095,6 +1154,45 @@ const asCursorAnimationMode = (
     : fallback;
 };
 
+const asRhythmSetting = (value: unknown, fallback: SiteRhythmSetting): SiteRhythmSetting => {
+  return typeof value === 'string' && ['tight', 'balanced', 'linger'].includes(value)
+    ? (value as SiteRhythmSetting)
+    : fallback;
+};
+
+const asTextSequenceStyle = (value: unknown, fallback: SiteTextSequenceStyle): SiteTextSequenceStyle => {
+  return typeof value === 'string' && ['typewriter', 'beam', 'slice'].includes(value)
+    ? (value as SiteTextSequenceStyle)
+    : fallback;
+};
+
+const asAboutCardStyle = (value: unknown, fallback: SiteAboutCardStyle): SiteAboutCardStyle => {
+  return typeof value === 'string' && ['stack', 'orbit', 'slide'].includes(value)
+    ? (value as SiteAboutCardStyle)
+    : fallback;
+};
+
+const asProjectCardStyle = (value: unknown, fallback: SiteProjectCardStyle): SiteProjectCardStyle => {
+  return typeof value === 'string' && ['tilt', 'drift', 'rise'].includes(value)
+    ? (value as SiteProjectCardStyle)
+    : fallback;
+};
+
+const asTestimonialTransitionStyle = (
+  value: unknown,
+  fallback: SiteTestimonialTransitionStyle,
+): SiteTestimonialTransitionStyle => {
+  return typeof value === 'string' && ['fade', 'slide', 'flip'].includes(value)
+    ? (value as SiteTestimonialTransitionStyle)
+    : fallback;
+};
+
+const asSkillDisplayMode = (value: unknown, fallback: SiteSkillDisplayMode): SiteSkillDisplayMode => {
+  return typeof value === 'string' && ['rain', 'tiles'].includes(value)
+    ? (value as SiteSkillDisplayMode)
+    : fallback;
+};
+
 const asSocialIconKey = (value: unknown, fallback: SiteSocialIconKey): SiteSocialIconKey => {
   return typeof value === 'string' && SITE_SOCIAL_ICON_KEYS.includes(value as SiteSocialIconKey)
     ? (value as SiteSocialIconKey)
@@ -1145,6 +1243,10 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   const spark = isRecord(animation.spark) ? animation.spark : {};
   const beam = isRecord(animation.beam) ? animation.beam : {};
   const plasma = isRecord(animation.plasma) ? animation.plasma : {};
+  const sections = isRecord(animation.sections) ? animation.sections : {};
+  const aboutSection = isRecord(sections.about) ? sections.about : {};
+  const projectsSection = isRecord(sections.projects) ? sections.projects : {};
+  const testimonialsSection = isRecord(sections.testimonials) ? sections.testimonials : {};
   const cinematicSequence = isRecord(value.cinematicSequence) ? value.cinematicSequence : {};
   const globalFrame = isRecord(value.globalFrame) ? value.globalFrame : {};
   const visibility = isRecord(value.visibility) ? value.visibility : {};
@@ -2214,6 +2316,74 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
           0.02,
           0.5,
         ),
+      },
+      sections: {
+        about: {
+          enabled: asBoolean(
+            aboutSection.enabled,
+            DEFAULT_SITE_CONFIG.animation.sections.about.enabled,
+          ),
+          textSequenceStyle: asTextSequenceStyle(
+            aboutSection.textSequenceStyle,
+            DEFAULT_SITE_CONFIG.animation.sections.about.textSequenceStyle,
+          ),
+          cardEntranceStyle: asAboutCardStyle(
+            aboutSection.cardEntranceStyle,
+            DEFAULT_SITE_CONFIG.animation.sections.about.cardEntranceStyle,
+          ),
+          textRhythm: asRhythmSetting(
+            aboutSection.textRhythm,
+            DEFAULT_SITE_CONFIG.animation.sections.about.textRhythm,
+          ),
+          certificationRhythm: asRhythmSetting(
+            aboutSection.certificationRhythm,
+            DEFAULT_SITE_CONFIG.animation.sections.about.certificationRhythm,
+          ),
+          skillMode: asSkillDisplayMode(
+            aboutSection.skillMode,
+            DEFAULT_SITE_CONFIG.animation.sections.about.skillMode,
+          ),
+        },
+        projects: {
+          enabled: asBoolean(
+            projectsSection.enabled,
+            DEFAULT_SITE_CONFIG.animation.sections.projects.enabled,
+          ),
+          cardEntranceStyle: asProjectCardStyle(
+            projectsSection.cardEntranceStyle,
+            DEFAULT_SITE_CONFIG.animation.sections.projects.cardEntranceStyle,
+          ),
+          gridDepth: asRhythmSetting(
+            projectsSection.gridDepth,
+            DEFAULT_SITE_CONFIG.animation.sections.projects.gridDepth,
+          ),
+          hoverParallax: asBoolean(
+            projectsSection.hoverParallax,
+            DEFAULT_SITE_CONFIG.animation.sections.projects.hoverParallax,
+          ),
+        },
+        testimonials: {
+          enabled: asBoolean(
+            testimonialsSection.enabled,
+            DEFAULT_SITE_CONFIG.animation.sections.testimonials.enabled,
+          ),
+          transitionStyle: asTestimonialTransitionStyle(
+            testimonialsSection.transitionStyle,
+            DEFAULT_SITE_CONFIG.animation.sections.testimonials.transitionStyle,
+          ),
+          autoPlayMs: asBoundedNumber(
+            testimonialsSection.autoPlayMs,
+            DEFAULT_SITE_CONFIG.animation.sections.testimonials.autoPlayMs,
+            1500,
+            15000,
+          ),
+          floatIntensity: asBoundedNumber(
+            testimonialsSection.floatIntensity,
+            DEFAULT_SITE_CONFIG.animation.sections.testimonials.floatIntensity,
+            0,
+            1.2,
+          ),
+        },
       },
     },
     cinematicSequence: {

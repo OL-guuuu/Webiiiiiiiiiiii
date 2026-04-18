@@ -47,7 +47,10 @@ export const Scene05Overlay: React.FC<Scene05OverlayProps> = ({ progress }) => {
   const { siteConfig } = useSiteConfig();
   const { scene05 } = siteConfig;
 
-  if (scene05.animations?.enabled) {
+  const aboutAnimations = siteConfig.animation.sections.about;
+  const shouldUseCinematic = (scene05.animations?.enabled ?? true) && aboutAnimations.enabled;
+
+  if (shouldUseCinematic) {
     return <CinematicAbout progress={progress} />;
   }
 
@@ -705,4 +708,3 @@ export const Scene05Overlay: React.FC<Scene05OverlayProps> = ({ progress }) => {
     </section>
   );
 };
-
