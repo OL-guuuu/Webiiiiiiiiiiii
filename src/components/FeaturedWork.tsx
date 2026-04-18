@@ -5,6 +5,7 @@ import { Testimonials } from './Testimonials';
 import { Footer } from './Footer';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { getButtonClass, getCardClass, getGlassClass, getScaledRem } from './designSystem';
+import type { SiteElementAnimationStyle } from '../config/siteConfig';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -14,7 +15,7 @@ interface FeaturedWorkProps {
 
 const isPlaceholderHref = (href: string) => href.trim() === '#';
 
-const getHeaderRevealVars = (style: string) => {
+const getHeaderRevealVars = (style: SiteElementAnimationStyle) => {
   if (style === 'fade') {
     return {
       from: { y: 0, opacity: 0, rotationX: 0, scale: 1 },
@@ -39,7 +40,7 @@ const getHeaderRevealVars = (style: string) => {
   };
 };
 
-const getCardRevealVars = (style: string) => {
+const getCardRevealVars = (style: SiteElementAnimationStyle) => {
   if (style === 'fade') {
     return {
       from: { y: 0, opacity: 0, scale: 1, rotationX: 0 },

@@ -13,6 +13,7 @@ import {
   SITE_BUTTON_VARIANTS,
   SITE_CARD_VARIANTS,
   SITE_GLASS_VARIANTS,
+  SITE_ELEMENT_ANIMATION_STYLES,
   SITE_SOCIAL_ICON_KEYS,
   SITE_CONFIG_STORAGE_KEY,
   type SiteButtonVariant,
@@ -524,19 +525,16 @@ const Toggle: React.FC<{ label: string; checked: boolean; onChange: (checked: bo
 const listItemClass =
   'rounded-[12px] border border-white/12 bg-[rgba(0,0,0,0.3)] p-3 md:p-4 space-y-2.5';
 
-const SECTION_ANIMATION_STYLE_OPTIONS: Array<{ value: SiteElementAnimationStyle; label: string }> = [
-  { value: 'none', label: 'No animation' },
-  { value: 'fade', label: 'Fade' },
-  { value: 'fade-up', label: 'Fade Up' },
-  { value: 'slide-up', label: 'Slide Up' },
-  { value: 'cinematic', label: 'Cinematic' },
-  { value: 'stack', label: 'Stack' },
-  { value: 'stagger', label: 'Stagger' },
-  { value: 'creative', label: 'Creative' },
-  { value: 'zoom', label: 'Zoom' },
-  { value: 'glitch', label: 'Glitch' },
-  { value: 'typewriter', label: 'Typewriter' },
-];
+const SECTION_ANIMATION_STYLE_OPTIONS: Array<{ value: SiteElementAnimationStyle; label: string }> =
+  SITE_ELEMENT_ANIMATION_STYLES.map((value) => ({
+    value,
+    label:
+      value === 'none'
+        ? 'No animation'
+        : value
+            .replace('-', ' ')
+            .replace(/\\b\\w/g, (char) => char.toUpperCase()),
+  }));
 
 export const Dashboard: React.FC = () => {
   const { siteConfig, setSiteConfig, resetSiteConfig } = useSiteConfig();
@@ -2178,7 +2176,11 @@ export const Dashboard: React.FC = () => {
           </div>
         );
 
-      case 'scene05':
+      case 'scene05': {
+        const aboutAnimationsEnabled =
+          siteConfig.animation.sectionAnimations.aboutText.enabled ||
+          siteConfig.animation.sectionAnimations.aboutCards.enabled;
+
         return (
           <div className="grid gap-4">
             <Card title="Storytelling Animations" subtitle="Control narrative animation style (WebGL-like) for About Me section">
@@ -2193,16 +2195,10 @@ export const Dashboard: React.FC = () => {
                     <input
                       type="checkbox"
                       className="sr-only"
-                      checked={siteConfig.scene05.animations?.enabled ?? true}
+                      checked={aboutAnimationsEnabled}
                       onChange={(e) =>
                         updateConfig((prev) => ({
                           ...prev,
-                          scene05: {
-                            ...prev.scene05,
-                            animations: prev.scene05.animations 
-                              ? { ...prev.scene05.animations, enabled: e.target.checked } 
-                              : { enabled: e.target.checked, textRevealStyle: 'cinematic', cardEntranceStyle: 'creative' },
-                          },
                           animation: {
                             ...prev.animation,
                             sectionAnimations: {
@@ -2222,18 +2218,18 @@ export const Dashboard: React.FC = () => {
                     />
                     <div
                       className={`relative w-10 h-6 rounded-full transition-colors ${
-                        siteConfig.scene05.animations?.enabled ? 'bg-white' : 'bg-white/10'
+                        aboutAnimationsEnabled ? 'bg-white' : 'bg-white/10'
                       }`}
                     >
                       <div
                         className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform ${
-                          siteConfig.scene05.animations?.enabled ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/50'
+                          aboutAnimationsEnabled ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/50'
                         }`}
                       />
                     </div>
                   </label>
 
-                  {siteConfig.scene05.animations?.enabled && (
+                  {aboutAnimationsEnabled && (
                     <>
                       <div className="flex flex-col gap-1">
                         <label className="text-[11px] font-bold uppercase tracking-wider text-white/50">
@@ -2241,23 +2237,10 @@ export const Dashboard: React.FC = () => {
                         </label>
                         <select
                           className="w-full bg-[#161a23] border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30"
-                          value={siteConfig.scene05.animations.textRevealStyle}
+                          value={siteConfig.animation.sectionAnimations.aboutText.style}
                           onChange={(e) =>
                             updateConfig((prev) => ({
                               ...prev,
-                              scene05: {
-                                ...prev.scene05,
-                                animations: prev.scene05.animations
-                                  ? {
-                                      ...prev.scene05.animations,
-                                      textRevealStyle: e.target.value as 'none' | 'fade-up' | 'cinematic' | 'glitch',
-                                    }
-                                  : {
-                                      enabled: true,
-                                      textRevealStyle: e.target.value as 'none' | 'fade-up' | 'cinematic' | 'glitch',
-                                      cardEntranceStyle: 'creative',
-                                    },
-                              },
                               animation: {
                                 ...prev.animation,
                                 sectionAnimations: {
@@ -2284,23 +2267,10 @@ export const Dashboard: React.FC = () => {
                         </label>
                         <select
                           className="w-full bg-[#161a23] border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30"
-                          value={siteConfig.scene05.animations.cardEntranceStyle}
+                          value={siteConfig.animation.sectionAnimations.aboutCards.style}
                           onChange={(e) =>
                             updateConfig((prev) => ({
                               ...prev,
-                              scene05: {
-                                ...prev.scene05,
-                                animations: prev.scene05.animations
-                                  ? {
-                                      ...prev.scene05.animations,
-                                      cardEntranceStyle: e.target.value as 'none' | 'stack' | 'stagger' | 'creative',
-                                    }
-                                  : {
-                                      enabled: true,
-                                      textRevealStyle: 'cinematic',
-                                      cardEntranceStyle: e.target.value as 'none' | 'stack' | 'stagger' | 'creative',
-                                    },
-                              },
                               animation: {
                                 ...prev.animation,
                                 sectionAnimations: {
@@ -2786,6 +2756,7 @@ export const Dashboard: React.FC = () => {
             </Card>
           </div>
         );
+      }
 
       case 'designSystem':
         return (

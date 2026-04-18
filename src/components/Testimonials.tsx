@@ -69,6 +69,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
     if (testimonials.length === 0) return;
     if (isAnimating || index === activeIndex) return;
 
+     // When disabled from dashboard, switch testimonial content instantly with no transition.
      if (!testimonialAnimation.enabled || testimonialAnimation.style === 'none') {
       setActiveIndex(index);
       return;

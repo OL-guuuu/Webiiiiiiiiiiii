@@ -13,18 +13,21 @@ export type SiteCursorAnimationMode =
   | 'beam'
   | 'plasma';
 
-export type SiteElementAnimationStyle =
-  | 'none'
-  | 'fade'
-  | 'fade-up'
-  | 'slide-up'
-  | 'cinematic'
-  | 'stack'
-  | 'stagger'
-  | 'creative'
-  | 'zoom'
-  | 'glitch'
-  | 'typewriter';
+export const SITE_ELEMENT_ANIMATION_STYLES = [
+  'none',
+  'fade',
+  'fade-up',
+  'slide-up',
+  'cinematic',
+  'stack',
+  'stagger',
+  'creative',
+  'zoom',
+  'glitch',
+  'typewriter',
+] as const;
+
+export type SiteElementAnimationStyle = (typeof SITE_ELEMENT_ANIMATION_STYLES)[number];
 
 export interface SiteElementAnimationConfig {
   enabled: boolean;
@@ -354,11 +357,6 @@ export interface SiteConfig {
     aiTags: string[];
     actionLabel: string;
     actionHref: string;
-    animations?: {
-      enabled: boolean;
-      textRevealStyle: 'none' | 'fade-up' | 'cinematic' | 'glitch';
-      cardEntranceStyle: 'none' | 'stack' | 'stagger' | 'creative';
-    };
   };
   persistentUI: {
     logoAlt: string;
@@ -715,11 +713,6 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     aiTags: ['AI Workflows', 'Figma', 'Claude Code', 'Systems'],
     actionLabel: 'Connect With Me',
     actionHref: '#',
-    animations: {
-      enabled: true,
-      textRevealStyle: 'cinematic',
-      cardEntranceStyle: 'creative',
-    },
   },
   persistentUI: {
     logoAlt: 'Oussama Lassoued',
@@ -1139,26 +1132,8 @@ const asElementAnimationStyle = (
   fallback: SiteElementAnimationStyle,
 ): SiteElementAnimationStyle => {
   return typeof value === 'string' &&
-    ['none', 'fade', 'fade-up', 'slide-up', 'cinematic', 'stack', 'stagger', 'creative', 'zoom', 'glitch', 'typewriter'].includes(value)
+    SITE_ELEMENT_ANIMATION_STYLES.includes(value as SiteElementAnimationStyle)
     ? (value as SiteElementAnimationStyle)
-    : fallback;
-};
-
-const asScene05TextRevealStyle = (
-  value: unknown,
-  fallback: NonNullable<SiteConfig['scene05']['animations']>['textRevealStyle'],
-): NonNullable<SiteConfig['scene05']['animations']>['textRevealStyle'] => {
-  return typeof value === 'string' && ['none', 'fade-up', 'cinematic', 'glitch'].includes(value)
-    ? (value as NonNullable<SiteConfig['scene05']['animations']>['textRevealStyle'])
-    : fallback;
-};
-
-const asScene05CardEntranceStyle = (
-  value: unknown,
-  fallback: NonNullable<SiteConfig['scene05']['animations']>['cardEntranceStyle'],
-): NonNullable<SiteConfig['scene05']['animations']>['cardEntranceStyle'] => {
-  return typeof value === 'string' && ['none', 'stack', 'stagger', 'creative'].includes(value)
-    ? (value as NonNullable<SiteConfig['scene05']['animations']>['cardEntranceStyle'])
     : fallback;
 };
 
@@ -1221,7 +1196,6 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   const cinematicSequence = isRecord(value.cinematicSequence) ? value.cinematicSequence : {};
   const globalFrame = isRecord(value.globalFrame) ? value.globalFrame : {};
   const visibility = isRecord(value.visibility) ? value.visibility : {};
-  const scene05Animations = isRecord(scene05.animations) ? scene05.animations : {};
 
   const projects = Array.isArray(value.projects)
     ? value.projects
@@ -1584,20 +1558,6 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
       aiTags: aiTags.length > 0 ? aiTags : DEFAULT_SITE_CONFIG.scene05.aiTags,
       actionLabel: asString(scene05.actionLabel, DEFAULT_SITE_CONFIG.scene05.actionLabel),
       actionHref: asString(scene05.actionHref, DEFAULT_SITE_CONFIG.scene05.actionHref),
-      animations: {
-        enabled: asBoolean(
-          scene05Animations.enabled,
-          DEFAULT_SITE_CONFIG.scene05.animations?.enabled ?? true,
-        ),
-        textRevealStyle: asScene05TextRevealStyle(
-          scene05Animations.textRevealStyle,
-          DEFAULT_SITE_CONFIG.scene05.animations?.textRevealStyle ?? 'cinematic',
-        ),
-        cardEntranceStyle: asScene05CardEntranceStyle(
-          scene05Animations.cardEntranceStyle,
-          DEFAULT_SITE_CONFIG.scene05.animations?.cardEntranceStyle ?? 'creative',
-        ),
-      },
     },
     persistentUI: {
       logoAlt: asString(persistentUI.logoAlt, DEFAULT_SITE_CONFIG.persistentUI.logoAlt),

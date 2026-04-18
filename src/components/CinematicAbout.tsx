@@ -1,8 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, type CSSProperties } from 'react';
 import { useSiteConfig } from '../context/SiteConfigContext';
+import {
+  SITE_ELEMENT_ANIMATION_STYLES,
+  type SiteElementAnimationStyle,
+} from '../config/siteConfig';
 
-type TextStyle = 'none' | 'fade' | 'fade-up' | 'slide-up' | 'cinematic' | 'glitch' | 'typewriter';
-type CardStyle = 'none' | 'stack' | 'stagger' | 'creative' | 'zoom';
+type TextStyle = Extract<
+  SiteElementAnimationStyle,
+  'none' | 'fade' | 'fade-up' | 'slide-up' | 'cinematic' | 'glitch' | 'typewriter'
+>;
+type CardStyle = Extract<SiteElementAnimationStyle, 'none' | 'stack' | 'stagger' | 'creative' | 'zoom'>;
 
 interface CinematicAboutProps {
   progress: number;
@@ -32,14 +39,20 @@ const phaseProgress = (p: number, start: number, end: number) => {
 };
 
 const resolveTextStyle = (style: string): TextStyle => {
-  if (['none', 'fade', 'fade-up', 'slide-up', 'cinematic', 'glitch', 'typewriter'].includes(style)) {
+  if (
+    SITE_ELEMENT_ANIMATION_STYLES.includes(style as SiteElementAnimationStyle) &&
+    ['none', 'fade', 'fade-up', 'slide-up', 'cinematic', 'glitch', 'typewriter'].includes(style)
+  ) {
     return style as TextStyle;
   }
   return 'cinematic';
 };
 
 const resolveCardStyle = (style: string): CardStyle => {
-  if (['none', 'stack', 'stagger', 'creative', 'zoom'].includes(style)) {
+  if (
+    SITE_ELEMENT_ANIMATION_STYLES.includes(style as SiteElementAnimationStyle) &&
+    ['none', 'stack', 'stagger', 'creative', 'zoom'].includes(style)
+  ) {
     return style as CardStyle;
   }
   return 'creative';
@@ -82,6 +95,16 @@ const getCardTransform = (style: CardStyle, iter: number) => {
     default:
       return 'translate(0, 0) scale(1)';
   }
+};
+
+const getNarrativeTextStyle = (style: TextStyle, iter: number, opacity: number): CSSProperties => {
+  return {
+    opacity,
+    transform: getTextTransform(style, iter),
+    letterSpacing: style === 'cinematic' ? `${(0.06 - opacity * 0.06).toFixed(3)}em` : undefined,
+    filter: style === 'glitch' ? `blur(${(1 - opacity) * 2.2}px)` : undefined,
+    clipPath: style === 'typewriter' ? `inset(0 ${(1 - opacity) * 100}% 0 0)` : undefined,
+  };
 };
 
 const getCurrentItem = <T,>(items: T[], phaseP: number): { item: T | null; iter: number } => {
@@ -146,12 +169,8 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
   const aboutTextEnabled = animation.sectionAnimations.aboutText.enabled;
   const aboutCardsEnabled = animation.sectionAnimations.aboutCards.enabled;
 
-  const aboutTextStyle = aboutTextEnabled
-    ? resolveTextStyle(animation.sectionAnimations.aboutText.style)
-    : 'none';
-  const aboutCardsStyle = aboutCardsEnabled
-    ? resolveCardStyle(animation.sectionAnimations.aboutCards.style)
-    : 'none';
+  const aboutTextStyle = resolveTextStyle(animation.sectionAnimations.aboutText.style);
+  const aboutCardsStyle = resolveCardStyle(animation.sectionAnimations.aboutCards.style);
 
   const introOpacity = phaseOpacity(progress, -0.05, 0.16, 0.06);
   const visionOpacity = phaseOpacity(progress, 0.16, 0.34, 0.06);
@@ -226,19 +245,11 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
         {activeStory.item ? (
           <p
             className="max-w-5xl text-2xl md:text-5xl lg:text-6xl font-serif leading-[1.2] text-[#0f1219]"
-            style={{
-              opacity: getNarrativeOpacity(activeStory.iter),
-              transform: getTextTransform(aboutTextStyle, activeStory.iter),
-              letterSpacing:
-                aboutTextStyle === 'cinematic'
-                  ? `${(0.06 - getNarrativeOpacity(activeStory.iter) * 0.06).toFixed(3)}em`
-                  : undefined,
-              filter: aboutTextStyle === 'glitch' ? `blur(${(1 - getNarrativeOpacity(activeStory.iter)) * 2.2}px)` : undefined,
-              clipPath:
-                aboutTextStyle === 'typewriter'
-                  ? `inset(0 ${(1 - getNarrativeOpacity(activeStory.iter)) * 100}% 0 0)`
-                  : undefined,
-            }}
+            style={getNarrativeTextStyle(
+              aboutTextEnabled ? aboutTextStyle : 'none',
+              activeStory.iter,
+              getNarrativeOpacity(activeStory.iter),
+            )}
           >
             {activeStory.item}
           </p>
@@ -253,7 +264,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
           <div
             style={{
               opacity: getNarrativeOpacity(activeSkill.iter),
-              transform: getTextTransform(aboutTextStyle, activeSkill.iter),
+              transform: getTextTransform(aboutTextEnabled ? aboutTextStyle : 'none', activeSkill.iter),
             }}
           >
             <p className="font-mono text-[10px] md:text-[12px] uppercase tracking-[0.34em] text-[#0f1219]/58">{scene05.skillsTitle}</p>
@@ -271,7 +282,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
             className="w-full max-w-3xl rounded-[32px] border border-black/10 bg-white/85 p-8 md:p-12 text-center shadow-[0_40px_100px_-22px_rgba(0,0,0,0.2)]"
             style={{
               opacity: getCardOpacity(activeCompany.iter),
-              transform: getCardTransform(aboutCardsStyle, activeCompany.iter),
+              transform: getCardTransform(aboutCardsEnabled ? aboutCardsStyle : 'none', activeCompany.iter),
             }}
           >
             <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#0f1219]/56">{activeCompany.item.meta}</p>
@@ -295,7 +306,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
             className="w-full max-w-3xl rounded-[32px] border border-black/10 bg-white/90 p-8 md:p-12 text-center shadow-[0_44px_110px_-24px_rgba(0,0,0,0.22)]"
             style={{
               opacity: getCardOpacity(activeCert.iter),
-              transform: getCardTransform(aboutCardsStyle, activeCert.iter),
+              transform: getCardTransform(aboutCardsEnabled ? aboutCardsStyle : 'none', activeCert.iter),
             }}
           >
             <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-[#0f1219]/56">{scene05.certificationsTitle}</p>

@@ -46,8 +46,11 @@ const getInitials = (value: string) => {
 export const Scene05Overlay: React.FC<Scene05OverlayProps> = ({ progress }) => {
   const { siteConfig } = useSiteConfig();
   const { scene05 } = siteConfig;
+  const cinematicEnabled =
+    siteConfig.animation.sectionAnimations.aboutText.enabled ||
+    siteConfig.animation.sectionAnimations.aboutCards.enabled;
 
-  if (scene05.animations?.enabled) {
+  if (cinematicEnabled) {
     return <CinematicAbout progress={progress} />;
   }
 
@@ -705,4 +708,3 @@ export const Scene05Overlay: React.FC<Scene05OverlayProps> = ({ progress }) => {
     </section>
   );
 };
-
