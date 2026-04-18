@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { drawCoverFrame } from '../utils/drawCoverFrame';
 import { WebGLFog } from './WebGLFog';
+import { useSiteConfig } from '../context/SiteConfigContext';
 
 
 gsap.registerPlugin(ScrollTrigger);
@@ -32,6 +33,8 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const parallaxWrapperRef = useRef<HTMLDivElement>(null);
   const lastDrawableImageRef = useRef<HTMLImageElement | null>(null);
+  const { siteConfig } = useSiteConfig();
+  const scrollSettings = siteConfig.cinematicSequence.scroll;
   
   const onGlobalProgressRef = useRef(onGlobalProgress);
 
@@ -57,6 +60,11 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
     let lastDrawnIndex = 0;
 
     const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+    const clampProgress = (value: number) => {
+      if (value < 0.0005) return 0;
+      if (value > 0.9995) return 1;
+      return clamp(value, 0, 1);
+    };
 
     const getImageAtGlobalIndex = (index: number): HTMLImageElement | undefined => {
       if (index < l1) return scene02Images[index];
@@ -101,7 +109,7 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
 
     const playhead = { p: 0 };
     const updatePlayhead = (p: number) => {
-      const clampP = clamp(p, 0, 1);
+      const clampP = clampProgress(p);
       let targetIndex = 0;
 
       if (clampP < PHASE_PLAY_SCENE_02_03_END) {
@@ -148,36 +156,63 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
       }
     };
 
-    let isAnimating = false;
     let virtualProgress = 0;
-    
-    // Configurable webgl scroll speed
-    const SCROLL_SENSITIVITY = 0.0003;
+    let momentum = 0;
+    let momentumFrame: number | null = null;
+    let playheadTween: gsap.core.Tween | null = null;
+    const MOMENTUM_CAP = 0.08;
+    const MIN_MOMENTUM = 0.000002;
+    const tweenDuration = Math.max(0.0001, scrollSettings.smoothDurationMs / 1000);
 
-    const setPlayhead = (targetP: number) => {
-      const clampedP = clamp(targetP, 0, 1);
+    const stopMomentum = () => {
+      if (momentumFrame) {
+        cancelAnimationFrame(momentumFrame);
+      }
+      momentumFrame = null;
+      momentum = 0;
+    };
+
+    const tweenToProgress = (targetP: number, options?: { immediate?: boolean }) => {
+      const clampedP = clampProgress(targetP);
       virtualProgress = clampedP;
-      
-      // Let gsap handle the smoothing for that "cinematic WebGL camera" feel
-      gsap.to(playhead, {
+      playheadTween?.kill();
+      playheadTween = gsap.to(playhead, {
         p: clampedP,
-        duration: 1.2, // Smooth interpolation duration
-        ease: "power2.out",
-        overwrite: "auto", // Prevent tweens from fighting
+        duration: options?.immediate ? 0.001 : tweenDuration,
+        ease: 'power2.out',
+        overwrite: 'auto',
         onUpdate: () => updatePlayhead(playhead.p),
       });
     };
 
+    const stepMomentum = () => {
+      const target = clampProgress(virtualProgress + momentum);
+      tweenToProgress(target);
+      momentum *= scrollSettings.momentumDamping;
+
+      if (Math.abs(momentum) > MIN_MOMENTUM) {
+        momentumFrame = requestAnimationFrame(stepMomentum);
+      } else {
+        stopMomentum();
+      }
+    };
+
+    const queueMomentum = (delta: number, multiplier = 1) => {
+      const limitedDelta = clamp(delta, -scrollSettings.maxWheelDelta, scrollSettings.maxWheelDelta);
+      const impulse = limitedDelta * scrollSettings.wheelIntensity * multiplier;
+      momentum = clamp(momentum + impulse, -MOMENTUM_CAP, MOMENTUM_CAP);
+
+      if (!momentumFrame) {
+        momentumFrame = requestAnimationFrame(stepMomentum);
+      }
+    };
+
     const handleWheel = (e: WheelEvent) => {
-      if (isInputLocked) return;
-      
-      // Normalize wheel delta to prevent single mouse wheel notches from causing massive jumps
-      // A standard mouse wheel ticks at ~100. Trackpads emit a stream of smaller values natively.
-      let delta = e.deltaY;
-      if (delta > 0) delta = Math.min(delta, 60);
-      else if (delta < 0) delta = Math.max(delta, -60);
-      
-      setPlayhead(virtualProgress + delta * SCROLL_SENSITIVITY);
+      if (isInputLocked) {
+        stopMomentum();
+        return;
+      }
+      queueMomentum(e.deltaY);
     };
 
     let touchStartY = 0;
@@ -186,19 +221,25 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
     };
     
     const handleTouchMove = (e: TouchEvent) => {
-      if (isInputLocked) return;
+      if (isInputLocked) {
+        stopMomentum();
+        return;
+      }
       const touchEndY = e.touches[0].clientY;
       const diff = touchStartY - touchEndY;
-      setPlayhead(virtualProgress + diff * SCROLL_SENSITIVITY * 2.5);
+      queueMomentum(diff, scrollSettings.touchMultiplier);
       touchStartY = touchEndY; 
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isInputLocked) return;
+      if (isInputLocked) {
+        stopMomentum();
+        return;
+      }
       if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
-        setPlayhead(virtualProgress + 0.1);
+        tweenToProgress(virtualProgress + scrollSettings.keyboardStep);
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-        setPlayhead(virtualProgress - 0.1);
+        tweenToProgress(virtualProgress - scrollSettings.keyboardStep);
       }
     };
 
@@ -209,7 +250,8 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
       else if (section === 'about') target = PHASE_ABOUT_END;
       else if (section === 'projects-sequence') target = PHASE_SCENE_07_END;
       else if (section === 'projects' || section === 'testimonials') target = 1.0;
-      setPlayhead(target);
+      stopMomentum();
+      tweenToProgress(target, { immediate: true });
     };
 
     window.addEventListener('wheel', handleWheel, { passive: true });
@@ -228,9 +270,21 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
       window.removeEventListener('nav-to-section', handleNavToSection);
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(resizeCallback);
-      gsap.killTweensOf(playhead);
+      stopMomentum();
+      playheadTween?.kill();
     };
-  }, [l1, l2, l6, totalLength, scene02Images, scene03Images, scene07Images, scene07Start, isInputLocked]); 
+  }, [
+    l1,
+    l2,
+    l6,
+    totalLength,
+    scene02Images,
+    scene03Images,
+    scene07Images,
+    scene07Start,
+    isInputLocked,
+    scrollSettings,
+  ]); 
 
   return (
     <section 

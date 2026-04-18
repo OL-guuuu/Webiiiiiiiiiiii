@@ -991,6 +991,159 @@ export const Dashboard: React.FC = () => {
         return (
           <div className="grid gap-4 xl:grid-cols-2">
             <Card title="Cinematic Sequence" subtitle="Control scene handoff from About to Projects">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                <Input
+                  label="Wheel intensity"
+                  type="number"
+                  min={0.00002}
+                  max={0.0003}
+                  step={0.00001}
+                  value={siteConfig.cinematicSequence.scroll.wheelIntensity}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      cinematicSequence: {
+                        ...prev.cinematicSequence,
+                        scroll: {
+                          ...prev.cinematicSequence.scroll,
+                          wheelIntensity: toSafeNumberInRange(
+                            next,
+                            prev.cinematicSequence.scroll.wheelIntensity,
+                            0.00002,
+                            0.0003,
+                          ),
+                        },
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Max wheel delta"
+                  type="number"
+                  min={10}
+                  max={200}
+                  step={1}
+                  value={siteConfig.cinematicSequence.scroll.maxWheelDelta}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      cinematicSequence: {
+                        ...prev.cinematicSequence,
+                        scroll: {
+                          ...prev.cinematicSequence.scroll,
+                          maxWheelDelta: toSafeNumberInRange(
+                            next,
+                            prev.cinematicSequence.scroll.maxWheelDelta,
+                            10,
+                            200,
+                          ),
+                        },
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Smoothing duration (ms)"
+                  type="number"
+                  min={120}
+                  max={2400}
+                  step={20}
+                  value={siteConfig.cinematicSequence.scroll.smoothDurationMs}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      cinematicSequence: {
+                        ...prev.cinematicSequence,
+                        scroll: {
+                          ...prev.cinematicSequence.scroll,
+                          smoothDurationMs: toSafeNumberInRange(
+                            next,
+                            prev.cinematicSequence.scroll.smoothDurationMs,
+                            120,
+                            2400,
+                          ),
+                        },
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Momentum damping"
+                  type="number"
+                  min={0.6}
+                  max={0.98}
+                  step={0.01}
+                  value={siteConfig.cinematicSequence.scroll.momentumDamping}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      cinematicSequence: {
+                        ...prev.cinematicSequence,
+                        scroll: {
+                          ...prev.cinematicSequence.scroll,
+                          momentumDamping: toSafeNumberInRange(
+                            next,
+                            prev.cinematicSequence.scroll.momentumDamping,
+                            0.6,
+                            0.98,
+                          ),
+                        },
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Touch multiplier"
+                  type="number"
+                  min={0.5}
+                  max={6}
+                  step={0.1}
+                  value={siteConfig.cinematicSequence.scroll.touchMultiplier}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      cinematicSequence: {
+                        ...prev.cinematicSequence,
+                        scroll: {
+                          ...prev.cinematicSequence.scroll,
+                          touchMultiplier: toSafeNumberInRange(
+                            next,
+                            prev.cinematicSequence.scroll.touchMultiplier,
+                            0.5,
+                            6,
+                          ),
+                        },
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Keyboard step"
+                  type="number"
+                  min={0.02}
+                  max={0.2}
+                  step={0.01}
+                  value={siteConfig.cinematicSequence.scroll.keyboardStep}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      cinematicSequence: {
+                        ...prev.cinematicSequence,
+                        scroll: {
+                          ...prev.cinematicSequence.scroll,
+                          keyboardStep: toSafeNumberInRange(
+                            next,
+                            prev.cinematicSequence.scroll.keyboardStep,
+                            0.02,
+                            0.2,
+                          ),
+                        },
+                      },
+                    }))
+                  }
+                />
+              </div>
+
               <Input
                 label="Pause before portfolio reveal (ms)"
                 type="number"
@@ -1010,7 +1163,7 @@ export const Dashboard: React.FC = () => {
               />
 
               <p className="rounded-[10px] border border-white/10 bg-black/25 px-3 py-2 text-xs text-white/58">
-                The About handoff uses the cinematic closet transition by default. Use pause timing to control how long it holds before the Projects reveal.
+                Tune hero scroll sensitivity, touch feel, and easing when moving between the cinematic frames. Pause timing still controls how long the About closet holds before the Projects reveal.
               </p>
             </Card>
 

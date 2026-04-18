@@ -243,9 +243,19 @@ export interface SiteVisibilityConfig {
   footerOffice: boolean;
 }
 
+export interface SiteCinematicScrollConfig {
+  wheelIntensity: number;
+  maxWheelDelta: number;
+  smoothDurationMs: number;
+  momentumDamping: number;
+  touchMultiplier: number;
+  keyboardStep: number;
+}
+
 export interface SiteCinematicSequenceConfig {
   skipScene06Exit: boolean;
   scene06PauseMs: number;
+  scroll: SiteCinematicScrollConfig;
 }
 
 export interface SiteGlobalFrameConfig {
@@ -1071,6 +1081,14 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   cinematicSequence: {
     skipScene06Exit: false,
     scene06PauseMs: 900,
+    scroll: {
+      wheelIntensity: 0.00005,
+      maxWheelDelta: 48,
+      smoothDurationMs: 680,
+      momentumDamping: 0.86,
+      touchMultiplier: 1.6,
+      keyboardStep: 0.07,
+    },
   },
   globalFrame: {
     topOffsetMobilePx: 60,
@@ -1248,6 +1266,7 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   const projectsSection = isRecord(sections.projects) ? sections.projects : {};
   const testimonialsSection = isRecord(sections.testimonials) ? sections.testimonials : {};
   const cinematicSequence = isRecord(value.cinematicSequence) ? value.cinematicSequence : {};
+  const cinematicScroll = isRecord(cinematicSequence.scroll) ? cinematicSequence.scroll : {};
   const globalFrame = isRecord(value.globalFrame) ? value.globalFrame : {};
   const visibility = isRecord(value.visibility) ? value.visibility : {};
 
@@ -2397,6 +2416,44 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
         0,
         6000,
       ),
+      scroll: {
+        wheelIntensity: asBoundedNumber(
+          cinematicScroll.wheelIntensity,
+          DEFAULT_SITE_CONFIG.cinematicSequence.scroll.wheelIntensity,
+          0.00002,
+          0.0003,
+        ),
+        maxWheelDelta: asBoundedNumber(
+          cinematicScroll.maxWheelDelta,
+          DEFAULT_SITE_CONFIG.cinematicSequence.scroll.maxWheelDelta,
+          10,
+          200,
+        ),
+        smoothDurationMs: asBoundedNumber(
+          cinematicScroll.smoothDurationMs,
+          DEFAULT_SITE_CONFIG.cinematicSequence.scroll.smoothDurationMs,
+          120,
+          2400,
+        ),
+        momentumDamping: asBoundedNumber(
+          cinematicScroll.momentumDamping,
+          DEFAULT_SITE_CONFIG.cinematicSequence.scroll.momentumDamping,
+          0.6,
+          0.98,
+        ),
+        touchMultiplier: asBoundedNumber(
+          cinematicScroll.touchMultiplier,
+          DEFAULT_SITE_CONFIG.cinematicSequence.scroll.touchMultiplier,
+          0.5,
+          6,
+        ),
+        keyboardStep: asBoundedNumber(
+          cinematicScroll.keyboardStep,
+          DEFAULT_SITE_CONFIG.cinematicSequence.scroll.keyboardStep,
+          0.02,
+          0.2,
+        ),
+      },
     },
     globalFrame: {
       topOffsetMobilePx: asBoundedNumber(
