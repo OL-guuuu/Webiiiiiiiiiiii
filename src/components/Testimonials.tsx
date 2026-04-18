@@ -14,6 +14,9 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
   const { siteConfig } = useSiteConfig();
   const testimonials = siteConfig.testimonials.filter((item) => item.visible);
   const dsComponents = siteConfig.designSystem.components;
+  const testimonialMotion = siteConfig.motion.testimonials;
+  const motionEnabled = testimonialMotion.enabled !== false;
+  const motionIntensity = Math.max(0.2, testimonialMotion.intensity);
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   
@@ -41,7 +44,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
 
   // Entrance
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || !motionEnabled) return;
 
     // Delay scroll trigger initialization to ensure parent container completely finishes its entry transition
     let ctx: gsap.Context;
@@ -62,11 +65,15 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
       clearTimeout(initTimer);
       if (ctx) ctx.revert();
     };
-  }, [isActive]);
+  }, [isActive, motionEnabled]);
 
   const changeTestimonial = (index: number) => {
     if (testimonials.length === 0) return;
     if (isAnimating || index === activeIndex) return;
+    if (!motionEnabled) {
+      setActiveIndex(index);
+      return;
+    }
     setIsAnimating(true);
 
     if (!contentRef.current) {
@@ -77,27 +84,34 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
 
     gsap.killTweensOf(contentRef.current);
 
+    const distance = 20 + 40 * motionIntensity;
+    const exitProps =
+      testimonialMotion.cardStyle === 'pulse'
+        ? { scale: 0.92, opacity: 0, filter: 'blur(8px)', duration: 0.6, ease: 'power3.inOut' }
+        : testimonialMotion.cardStyle === 'orbit'
+          ? { y: -distance, opacity: 0, rotate: 8, filter: 'blur(8px)', duration: 0.7, ease: 'power3.in' }
+          : { y: -distance * 0.7, opacity: 0, filter: 'blur(8px)', rotationX: 10, transformOrigin: 'center center', duration: 0.7, ease: 'power3.in' };
+
+    const enterProps =
+      testimonialMotion.cardStyle === 'pulse'
+        ? { scale: 1, opacity: 1, filter: 'blur(0px)', duration: 1, ease: 'elastic.out(1, 0.7)' }
+        : testimonialMotion.cardStyle === 'orbit'
+          ? { y: 0, opacity: 1, rotate: 0, filter: 'blur(0px)', duration: 1.2, ease: 'power4.out' }
+          : { y: 0, opacity: 1, filter: 'blur(0px)', rotationX: 0, duration: 1.1, ease: 'power4.out' };
+
     const tl = gsap.timeline({
       onComplete: () => {
-        setActiveIndex(index);
-
-        gsap.fromTo(
-          contentRef.current,
-          { y: 20, opacity: 0, filter: 'blur(8px)', rotationX: -10, transformOrigin: 'center center' },
-          { y: 0, opacity: 1, filter: 'blur(0px)', rotationX: 0, duration: 1.4, ease: 'power4.out', onComplete: () => setIsAnimating(false) }
-        );
+        setIsAnimating(false);
       }
     });
 
-    tl.to(contentRef.current, {
-      y: -20,
-      opacity: 0,
-      filter: 'blur(8px)',
-      rotationX: 10,
-      transformOrigin: 'center center',
-      duration: 0.7,
-      ease: 'power3.in'
-    });
+    tl.to(contentRef.current, exitProps);
+    tl.add(() => setActiveIndex(index));
+    tl.fromTo(
+      contentRef.current,
+      { y: distance * 0.35, opacity: 0, filter: 'blur(8px)', rotationX: -10, transformOrigin: 'center center', scale: testimonialMotion.cardStyle === 'pulse' ? 0.94 : 1 },
+      enterProps,
+    );
   };
 
   const activeT = testimonials[activeIndex] ?? testimonials[0];
@@ -204,4 +218,3 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
     </div>
   );
 };
-

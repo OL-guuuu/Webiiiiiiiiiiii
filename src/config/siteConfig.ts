@@ -283,6 +283,27 @@ export interface SiteScene05Certification {
   visible: boolean;
 }
 
+export type SiteTextAnimationStyle = 'cinematic' | 'typewriter' | 'glitch' | 'fade' | 'minimal';
+export type SiteCardAnimationStyle = 'stack' | 'cascade' | 'orbit' | 'pulse' | 'none';
+
+export interface SiteSectionAnimationPreset {
+  enabled: boolean;
+  textStyle: SiteTextAnimationStyle;
+  cardStyle: SiteCardAnimationStyle;
+  intensity: number;
+  loopMs?: number;
+}
+
+export interface SiteMotionConfig {
+  home: SiteSectionAnimationPreset;
+  about: SiteSectionAnimationPreset & {
+    heroLoopMs: number;
+    cardLoopMs: number;
+  };
+  projects: SiteSectionAnimationPreset;
+  testimonials: SiteSectionAnimationPreset;
+}
+
 export interface SiteConfig {
   introText: string;
   featured: {
@@ -317,6 +338,7 @@ export interface SiteConfig {
     learningLogos: SiteScene05LogoItem[];
     skillsTitle: string;
     skills: string[];
+    heroStatements: string[];
     certificationsTitle: string;
     certifications: string[];
     credentialButtonLabel: string;
@@ -332,6 +354,8 @@ export interface SiteConfig {
       enabled: boolean;
       textRevealStyle: 'none' | 'fade-up' | 'cinematic' | 'glitch';
       cardEntranceStyle: 'none' | 'stack' | 'stagger' | 'creative';
+      heroLoopMs?: number;
+      certificateLoopMs?: number;
     };
   };
   persistentUI: {
@@ -436,6 +460,7 @@ export interface SiteConfig {
     beam: SiteCursorBeamConfig;
     plasma: SiteCursorPlasmaConfig;
   };
+  motion: SiteMotionConfig;
   cinematicSequence: SiteCinematicSequenceConfig;
   globalFrame: SiteGlobalFrameConfig;
   visibility: SiteVisibilityConfig;
@@ -615,6 +640,11 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       'Interaction & Prototyping',
       'Product Thinking',
     ],
+    heroStatements: [
+      'I craft cinematic product stories built on clarity.',
+      'Every interaction is timed, paced, and measurable.',
+      'Animation supports comprehension—not distraction.',
+    ],
     certificationsTitle: 'Certifications',
     certifications: [
       'Google UX Design Prof.',
@@ -688,6 +718,13 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     aiTags: ['AI Workflows', 'Figma', 'Claude Code', 'Systems'],
     actionLabel: 'Connect With Me',
     actionHref: '#',
+    animations: {
+      enabled: true,
+      textRevealStyle: 'cinematic',
+      cardEntranceStyle: 'creative',
+      heroLoopMs: 3200,
+      certificateLoopMs: 3600,
+    },
   },
   persistentUI: {
     logoAlt: 'Oussama Lassoued',
@@ -1009,6 +1046,37 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       smoothing: 0.16,
     },
   },
+  motion: {
+    home: {
+      enabled: true,
+      textStyle: 'cinematic',
+      cardStyle: 'cascade',
+      intensity: 0.64,
+      loopMs: 3600,
+    },
+    about: {
+      enabled: true,
+      textStyle: 'typewriter',
+      cardStyle: 'orbit',
+      intensity: 0.8,
+      heroLoopMs: 3200,
+      cardLoopMs: 3600,
+    },
+    projects: {
+      enabled: true,
+      textStyle: 'glitch',
+      cardStyle: 'stack',
+      intensity: 0.72,
+      loopMs: 2800,
+    },
+    testimonials: {
+      enabled: true,
+      textStyle: 'fade',
+      cardStyle: 'pulse',
+      intensity: 0.58,
+      loopMs: 4200,
+    },
+  },
   cinematicSequence: {
     skipScene06Exit: false,
     scene06PauseMs: 900,
@@ -1095,6 +1163,34 @@ const asCursorAnimationMode = (
     : fallback;
 };
 
+const asTextAnimationStyle = (value: unknown, fallback: SiteTextAnimationStyle): SiteTextAnimationStyle => {
+  return typeof value === 'string' && ['cinematic', 'typewriter', 'glitch', 'fade', 'minimal'].includes(value)
+    ? (value as SiteTextAnimationStyle)
+    : fallback;
+};
+
+const asCardAnimationStyle = (value: unknown, fallback: SiteCardAnimationStyle): SiteCardAnimationStyle => {
+  return typeof value === 'string' && ['stack', 'cascade', 'orbit', 'pulse', 'none'].includes(value)
+    ? (value as SiteCardAnimationStyle)
+    : fallback;
+};
+
+const asSectionAnimationPreset = (
+  value: unknown,
+  fallback: SiteSectionAnimationPreset,
+): SiteSectionAnimationPreset => {
+  if (!isRecord(value)) return fallback;
+  const fallbackLoopMs =
+    typeof fallback.loopMs === 'number' ? fallback.loopMs : fallback.intensity * 5000;
+  return {
+    enabled: asBoolean(value.enabled, fallback.enabled),
+    textStyle: asTextAnimationStyle(value.textStyle, fallback.textStyle),
+    cardStyle: asCardAnimationStyle(value.cardStyle, fallback.cardStyle),
+    intensity: asBoundedNumber(value.intensity, fallback.intensity, 0, 1),
+    loopMs: asNumber(value.loopMs, fallbackLoopMs),
+  };
+};
+
 const asSocialIconKey = (value: unknown, fallback: SiteSocialIconKey): SiteSocialIconKey => {
   return typeof value === 'string' && SITE_SOCIAL_ICON_KEYS.includes(value as SiteSocialIconKey)
     ? (value as SiteSocialIconKey)
@@ -1123,6 +1219,7 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
 
   const featured = isRecord(value.featured) ? value.featured : {};
   const scene05 = isRecord(value.scene05) ? value.scene05 : {};
+  const scene05Animations = isRecord(scene05.animations) ? scene05.animations : {};
   const persistentUI = isRecord(value.persistentUI) ? value.persistentUI : {};
   const footer = isRecord(value.footer) ? value.footer : {};
   const articlesPage = isRecord(value.articlesPage) ? value.articlesPage : {};
@@ -1145,6 +1242,11 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   const spark = isRecord(animation.spark) ? animation.spark : {};
   const beam = isRecord(animation.beam) ? animation.beam : {};
   const plasma = isRecord(animation.plasma) ? animation.plasma : {};
+  const motion = isRecord(value.motion) ? value.motion : {};
+  const motionHome = isRecord(motion.home) ? motion.home : {};
+  const motionAbout = isRecord(motion.about) ? motion.about : {};
+  const motionProjects = isRecord(motion.projects) ? motion.projects : {};
+  const motionTestimonials = isRecord(motion.testimonials) ? motion.testimonials : {};
   const cinematicSequence = isRecord(value.cinematicSequence) ? value.cinematicSequence : {};
   const globalFrame = isRecord(value.globalFrame) ? value.globalFrame : {};
   const visibility = isRecord(value.visibility) ? value.visibility : {};
@@ -1387,6 +1489,10 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
     ? scene05.storyParagraphs.map((item) => asString(item, '')).filter(Boolean)
     : DEFAULT_SITE_CONFIG.scene05.storyParagraphs;
 
+  const heroStatements = Array.isArray(scene05.heroStatements)
+    ? scene05.heroStatements.map((item) => asString(item, '')).filter(Boolean)
+    : DEFAULT_SITE_CONFIG.scene05.heroStatements;
+
   const learningLogos = Array.isArray(scene05.learningLogos)
     ? scene05.learningLogos
         .map((item, index) => {
@@ -1486,6 +1592,8 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
         learningLogos.length > 0 ? learningLogos : DEFAULT_SITE_CONFIG.scene05.learningLogos,
       skillsTitle: asString(scene05.skillsTitle, DEFAULT_SITE_CONFIG.scene05.skillsTitle),
       skills: skills.length > 0 ? skills : DEFAULT_SITE_CONFIG.scene05.skills,
+      heroStatements:
+        heroStatements.length > 0 ? heroStatements : DEFAULT_SITE_CONFIG.scene05.heroStatements,
       certificationsTitle: asString(
         scene05.certificationsTitle,
         DEFAULT_SITE_CONFIG.scene05.certificationsTitle,
@@ -1510,6 +1618,28 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
       aiTags: aiTags.length > 0 ? aiTags : DEFAULT_SITE_CONFIG.scene05.aiTags,
       actionLabel: asString(scene05.actionLabel, DEFAULT_SITE_CONFIG.scene05.actionLabel),
       actionHref: asString(scene05.actionHref, DEFAULT_SITE_CONFIG.scene05.actionHref),
+      animations: {
+        enabled: asBoolean(
+          scene05Animations.enabled,
+          DEFAULT_SITE_CONFIG.scene05.animations?.enabled ?? true,
+        ),
+        textRevealStyle: asString(
+          scene05Animations.textRevealStyle,
+          DEFAULT_SITE_CONFIG.scene05.animations?.textRevealStyle ?? 'cinematic',
+        ) as 'none' | 'fade-up' | 'cinematic' | 'glitch',
+        cardEntranceStyle: asString(
+          scene05Animations.cardEntranceStyle,
+          DEFAULT_SITE_CONFIG.scene05.animations?.cardEntranceStyle ?? 'creative',
+        ) as 'none' | 'stack' | 'stagger' | 'creative',
+        heroLoopMs: asNumber(
+          scene05Animations.heroLoopMs,
+          DEFAULT_SITE_CONFIG.scene05.animations?.heroLoopMs ?? 3200,
+        ),
+        certificateLoopMs: asNumber(
+          scene05Animations.certificateLoopMs,
+          DEFAULT_SITE_CONFIG.scene05.animations?.certificateLoopMs ?? 3600,
+        ),
+      },
     },
     persistentUI: {
       logoAlt: asString(persistentUI.logoAlt, DEFAULT_SITE_CONFIG.persistentUI.logoAlt),
@@ -2215,6 +2345,28 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
           0.5,
         ),
       },
+    },
+    motion: {
+      home: asSectionAnimationPreset(motionHome, DEFAULT_SITE_CONFIG.motion.home),
+      about: (() => {
+        const base = asSectionAnimationPreset(motionAbout, DEFAULT_SITE_CONFIG.motion.about);
+        return {
+          ...base,
+          heroLoopMs: asNumber(
+            isRecord(motionAbout) ? motionAbout.heroLoopMs : undefined,
+            DEFAULT_SITE_CONFIG.motion.about.heroLoopMs,
+          ),
+          cardLoopMs: asNumber(
+            isRecord(motionAbout) ? motionAbout.cardLoopMs : undefined,
+            DEFAULT_SITE_CONFIG.motion.about.cardLoopMs,
+          ),
+        };
+      })(),
+      projects: asSectionAnimationPreset(motionProjects, DEFAULT_SITE_CONFIG.motion.projects),
+      testimonials: asSectionAnimationPreset(
+        motionTestimonials,
+        DEFAULT_SITE_CONFIG.motion.testimonials,
+      ),
     },
     cinematicSequence: {
       skipScene06Exit: asBoolean(

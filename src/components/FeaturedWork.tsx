@@ -18,6 +18,10 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
   const { siteConfig } = useSiteConfig();
   const { featured, visibility, designSystem } = siteConfig;
   const projects = useMemo(() => siteConfig.projects.filter((project) => project.visible), [siteConfig.projects]);
+  const projectMotion = siteConfig.motion.projects;
+  const projectTextStyle = projectMotion.textStyle;
+  const projectCardStyle = projectMotion.cardStyle;
+  const projectMotionIntensity = Math.max(0.2, projectMotion.intensity);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
@@ -34,6 +38,12 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
   useEffect(() => {
     if (!isActive || !containerRef.current) return;
 
+    if (!projectMotion.enabled) {
+      gsap.set('.fw-header-text', { opacity: 1, y: 0, rotationX: 0, skewX: 0, clearProps: 'all' });
+      gsap.set('.fw-reveal', { opacity: 1, y: 0, x: 0, scale: 1, rotation: 0, rotationX: 0, clearProps: 'all' });
+      return;
+    }
+
     const initTimer = window.setTimeout(() => {
       if (containerRef.current) containerRef.current.scrollTop = 0;
       window.dispatchEvent(new CustomEvent('toggle-navbar', { detail: { show: true } }));
@@ -44,24 +54,51 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ delay: 0.56 });
 
+      const headerFrom =
+        projectTextStyle === 'glitch'
+          ? { y: 40 * projectMotionIntensity, opacity: 0, skewX: 6 }
+          : projectTextStyle === 'fade'
+            ? { y: 24, opacity: 0 }
+            : { y: 70 * projectMotionIntensity, opacity: 0, rotationX: 8, transformOrigin: '0% 50% -40' };
+      const headerTo =
+        projectTextStyle === 'glitch'
+          ? { y: 0, opacity: 1, skewX: 0, duration: 1.1, ease: 'expo.out', stagger: 0.12 }
+          : projectTextStyle === 'fade'
+            ? { y: 0, opacity: 1, duration: 0.9, ease: 'power3.out', stagger: 0.12 }
+            : { y: 0, opacity: 1, rotationX: 0, duration: 1.6, ease: 'expo.out', stagger: 0.12 };
+
       tl.fromTo(
         '.fw-header-text',
-        { y: 70, opacity: 0, rotationX: 12, transformOrigin: '0% 50% -40' },
-        { y: 0, opacity: 1, rotationX: 0, duration: 1.6, ease: 'expo.out', stagger: 0.12 },
+        headerFrom,
+        headerTo,
       );
 
       const elements = gsap.utils.toArray<HTMLElement>('.fw-reveal', containerRef.current);
-      elements.forEach((el) => {
+      elements.forEach((el, index) => {
+        const distance = 90 * projectMotionIntensity;
+        const baseFrom =
+          projectCardStyle === 'orbit'
+            ? { y: distance * 0.6, opacity: 0, scale: 0.94, rotation: -6 }
+            : projectCardStyle === 'cascade'
+              ? { y: distance * 0.5, x: (index % 2 === 0 ? -1 : 1) * distance * 0.35, opacity: 0, scale: 0.95 }
+              : projectCardStyle === 'pulse'
+                ? { opacity: 0, scale: 0.86 }
+                : { y: distance, opacity: 0, scale: 0.95, rotationX: projectCardStyle === 'stack' ? 6 : 0 };
+
+        const baseTo =
+          projectCardStyle === 'orbit'
+            ? { y: 0, opacity: 1, scale: 1, rotation: 0, duration: 1.25, ease: 'expo.out' }
+            : projectCardStyle === 'cascade'
+              ? { y: 0, x: 0, opacity: 1, scale: 1, duration: 1.05, ease: 'power3.out' }
+              : projectCardStyle === 'pulse'
+                ? { opacity: 1, scale: 1, duration: 0.9, ease: 'power3.out' }
+                : { y: 0, opacity: 1, scale: 1, rotationX: 0, duration: 1.35, ease: 'expo.out' };
+
         gsap.fromTo(
           el,
-          { y: 90, opacity: 0, scale: 0.95, rotationX: 6 },
+          baseFrom,
           {
-            y: 0,
-            opacity: 1,
-            scale: 1,
-            rotationX: 0,
-            duration: 1.35,
-            ease: 'expo.out',
+            ...baseTo,
             scrollTrigger: {
               trigger: el,
               scroller: containerRef.current,
@@ -115,6 +152,10 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
     };
   }, [
     isActive,
+    projectMotion.enabled,
+    projectMotionIntensity,
+    projectCardStyle,
+    projectTextStyle,
     visibility.featuredCtaSection,
     visibility.featuredHeader,
     visibility.featuredProjectsGrid,

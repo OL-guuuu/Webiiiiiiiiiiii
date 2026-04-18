@@ -848,6 +848,22 @@ export const Dashboard: React.FC = () => {
     }));
   };
 
+  const updateSectionMotion = <K extends keyof SiteConfig['motion']>(
+    section: K,
+    patch: Partial<SiteConfig['motion'][K]>,
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      motion: {
+        ...prev.motion,
+        [section]: {
+          ...prev.motion[section],
+          ...patch,
+        },
+      },
+    }));
+  };
+
   const updateVisibility = <K extends keyof SiteConfig['visibility']>(key: K, value: SiteConfig['visibility'][K]) => {
     updateConfig((prev) => ({
       ...prev,
@@ -2238,6 +2254,46 @@ export const Dashboard: React.FC = () => {
                           <option value="creative">Creative Pop</option>
                         </select>
                       </div>
+
+                      <Input
+                        label="Hero loop (ms)"
+                        type="number"
+                        min={800}
+                        max={8000}
+                        step={100}
+                        value={siteConfig.scene05.animations?.heroLoopMs ?? 3200}
+                        onChange={(next) =>
+                          updateConfig((prev) => ({
+                            ...prev,
+                            scene05: {
+                              ...prev.scene05,
+                              animations: prev.scene05.animations
+                                ? { ...prev.scene05.animations, heroLoopMs: toSafeNumberInRange(next, prev.scene05.animations.heroLoopMs ?? 3200, 800, 8000) }
+                                : { enabled: true, textRevealStyle: 'cinematic', cardEntranceStyle: 'creative', heroLoopMs: toSafeNumberInRange(next, 3200, 800, 8000) },
+                            },
+                          }))
+                        }
+                      />
+
+                      <Input
+                        label="Certificate loop (ms)"
+                        type="number"
+                        min={1000}
+                        max={10000}
+                        step={100}
+                        value={siteConfig.scene05.animations?.certificateLoopMs ?? 3600}
+                        onChange={(next) =>
+                          updateConfig((prev) => ({
+                            ...prev,
+                            scene05: {
+                              ...prev.scene05,
+                              animations: prev.scene05.animations
+                                ? { ...prev.scene05.animations, certificateLoopMs: toSafeNumberInRange(next, prev.scene05.animations.certificateLoopMs ?? 3600, 1000, 10000) }
+                                : { enabled: true, textRevealStyle: 'cinematic', cardEntranceStyle: 'creative', certificateLoopMs: toSafeNumberInRange(next, 3600, 1000, 10000) },
+                            },
+                          }))
+                        }
+                      />
                     </>
                   )}
                 </div>
@@ -2505,6 +2561,17 @@ export const Dashboard: React.FC = () => {
                   updateConfig((prev) => ({
                     ...prev,
                     scene05: { ...prev.scene05, skills: splitLines(next) },
+                  }))
+                }
+              />
+              <Textarea
+                label="Hero statements (one per line)"
+                value={siteConfig.scene05.heroStatements.join('\n')}
+                rows={4}
+                onChange={(next) =>
+                  updateConfig((prev) => ({
+                    ...prev,
+                    scene05: { ...prev.scene05, heroStatements: splitLines(next) },
                   }))
                 }
               />
@@ -3927,6 +3994,107 @@ export const Dashboard: React.FC = () => {
               >
                 Reset All Animation Presets
               </button>
+            </Card>
+
+            <Card title="Section Animations" subtitle="Attach animation styles to each page surface (articles excluded)">
+              {([
+                { id: 'home', label: 'Home' },
+                { id: 'about', label: 'About' },
+                { id: 'projects', label: 'Projects' },
+                { id: 'testimonials', label: 'Testimonials' },
+              ] as const).map((section) => {
+                const motion = siteConfig.motion[section.id];
+                const textOptions = [
+                  { value: 'cinematic', label: 'Cinematic' },
+                  { value: 'typewriter', label: 'Typewriter' },
+                  { value: 'glitch', label: 'Glitch' },
+                  { value: 'fade', label: 'Fade' },
+                  { value: 'minimal', label: 'Minimal' },
+                ];
+                const cardOptions = [
+                  { value: 'stack', label: 'Stack' },
+                  { value: 'cascade', label: 'Cascade' },
+                  { value: 'orbit', label: 'Orbit' },
+                  { value: 'pulse', label: 'Pulse' },
+                  { value: 'none', label: 'None' },
+                ];
+
+                return (
+                  <div key={section.id} className="rounded-[12px] border border-white/10 bg-black/20 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/80">{section.label}</p>
+                        <p className="text-xs text-white/50">Toggle or swap animation presets</p>
+                      </div>
+                      <Toggle
+                        label={`Enable ${section.label}`}
+                        checked={motion.enabled}
+                        onChange={(next) => updateSectionMotion(section.id, { enabled: next })}
+                      />
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <SelectInput
+                        label="Text motion"
+                        value={motion.textStyle}
+                        options={textOptions}
+                        onChange={(next) => updateSectionMotion(section.id, { textStyle: next as any })}
+                      />
+                      <SelectInput
+                        label="Card motion"
+                        value={motion.cardStyle}
+                        options={cardOptions}
+                        onChange={(next) => updateSectionMotion(section.id, { cardStyle: next as any })}
+                      />
+                    </div>
+
+                    <Input
+                      label="Intensity (0 - 1)"
+                      type="number"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={motion.intensity}
+                      onChange={(next) =>
+                        updateSectionMotion(section.id, {
+                          intensity: toSafeNumberInRange(next, motion.intensity, 0, 1),
+                        })
+                      }
+                    />
+
+                    {section.id === 'about' ? (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <Input
+                          label="Hero loop (ms)"
+                          type="number"
+                          min={800}
+                          max={8000}
+                          step={100}
+                          value={siteConfig.motion.about.heroLoopMs}
+                          onChange={(next) =>
+                            updateSectionMotion('about', {
+                              heroLoopMs: toSafeNumberInRange(next, siteConfig.motion.about.heroLoopMs, 800, 8000),
+                            })
+                          }
+                        />
+                        <Input
+                          label="Card loop (ms)"
+                          type="number"
+                          min={1000}
+                          max={10000}
+                          step={100}
+                          value={siteConfig.motion.about.cardLoopMs}
+                          onChange={(next) =>
+                            updateSectionMotion('about', {
+                              cardLoopMs: toSafeNumberInRange(next, siteConfig.motion.about.cardLoopMs, 1000, 10000),
+                            })
+                          }
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
             </Card>
 
             <Card title="Live Animation Preview" subtitle="Hover this area and test the selected cursor animation">
