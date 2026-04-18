@@ -212,6 +212,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
   const experienceEnd = 1.08;
 
   const statementsWindow = statements.length > 0 ? (statementsEnd - statementsStart) / statements.length : 0.18;
+  const skillsWindow = scene05.skills.length > 0 ? (skillsEnd - skillsStart) / scene05.skills.length : 0.14;
   const certWindow =
     certifications.length > 0
       ? (certificationsEnd - certificationsStart) / certifications.length
@@ -409,45 +410,80 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                   </span>
                 </div>
 
-                <div className="relative mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
-                  {scene05.skills.map((skill, idx) => {
-                    const baseStyle =
-                      aboutMotion.skillMode === 'tiles'
-                        ? {
-                            transform: `translate3d(${Math.sin(idx + mousePos.x) * 16}px, ${
-                              Math.cos(idx + mousePos.y) * 12
-                            }px, 0) scale(${0.94 + (Math.sin(idx * 1.2) + 1) * 0.03})`,
-                          }
-                        : {
-                            transform: getRainTransform(
+                <div className="relative mt-4 overflow-hidden rounded-2xl border border-white/0 bg-gradient-to-b from-white/80 to-white/70 p-1">
+                  <div className="pointer-events-none absolute inset-0">
+                    {scene05.skills.map((skill, idx) => {
+                      const start = skillsStart + skillsWindow * 0.35;
+                      const end = skillsEnd + skillsWindow * 0.35;
+                      const left = (idx * 97) % 100;
+                      const top = (idx * 53) % 90;
+                      return (
+                        <span
+                          key={`rain-${skill}-${idx}`}
+                          className="absolute rounded-full border border-[#0f1219]/12 bg-white/70 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0f1219]/70 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.25)]"
+                          style={{
+                            left: `${left}%`,
+                            top: `${top}%`,
+                            transform: `${getRainTransform(
                               localProgress,
-                              skillsStart,
-                              skillsEnd,
+                              start,
+                              end,
                               idx,
                               scene05.skills.length,
                               mousePos.x,
                               mousePos.y,
-                            ),
-                          };
+                              0.08,
+                            )} translate(-50%, -50%)`,
+                            opacity: calcOpacity(localProgress, skillsStart, skillsEnd, 0.18) * 0.8,
+                          }}
+                        >
+                          {skill}
+                        </span>
+                      );
+                    })}
+                  </div>
 
-                    return (
-                      <span
-                        key={`${skill}-${idx}`}
-                        className="pointer-events-auto rounded-[16px] border border-[#0f1219]/10 bg-gradient-to-b from-white/92 to-white/74 px-4 py-3 text-sm font-semibold text-[#0f1219] shadow-[0_18px_40px_-22px_rgba(0,0,0,0.2)] backdrop-blur-md md:px-5 md:text-base"
-                        style={{
-                          ...baseStyle,
-                          transition: 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                        }}
-                      >
-                        {skill}
-                      </span>
-                    );
-                  })}
+                  <div className="relative grid grid-cols-2 gap-3 md:grid-cols-3">
+                    {scene05.skills.map((skill, idx) => {
+                      const baseStyle =
+                        aboutMotion.skillMode === 'tiles'
+                          ? {
+                              transform: `translate3d(${Math.sin(idx + mousePos.x) * 16}px, ${
+                                Math.cos(idx + mousePos.y) * 12
+                              }px, 0) scale(${0.94 + (Math.sin(idx * 1.2) + 1) * 0.03})`,
+                            }
+                          : {
+                              transform: getRainTransform(
+                                localProgress,
+                                skillsStart,
+                                skillsEnd,
+                                idx,
+                                scene05.skills.length,
+                                mousePos.x,
+                                mousePos.y,
+                                0.12,
+                              ),
+                            };
+
+                      return (
+                        <span
+                          key={`${skill}-${idx}`}
+                          className="pointer-events-auto rounded-[16px] border border-[#0f1219]/10 bg-gradient-to-b from-white/92 to-white/74 px-4 py-3 text-sm font-semibold text-[#0f1219] shadow-[0_18px_40px_-22px_rgba(0,0,0,0.2)] backdrop-blur-md md:px-5 md:text-base"
+                          style={{
+                            ...baseStyle,
+                            transition: 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                          }}
+                        >
+                          {skill}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
               <div
-                className="relative overflow-hidden rounded-[28px] border border-black/8 bg-gradient-to-br from-white/95 to-white/78 p-5 shadow-[0_22px_48px_-24px_rgba(0,0,0,0.25)] backdrop-blur-[16px]"
+                className="relative overflow-hidden rounded-[28px] border border-black/8 bg-gradient-to-br from-white/94 to-white/78 p-5 shadow-[0_22px_48px_-24px_rgba(0,0,0,0.25)] backdrop-blur-[16px]"
                 style={{
                   opacity: calcOpacity(localProgress, certificationsStart, certificationsEnd, certificationFade),
                   transform: `translateY(${(1 - sectionProgress(localProgress, certificationsStart, certificationsEnd)) * 20 - 8}px)`,
@@ -455,11 +491,17 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                     localProgress > certificationsStart && localProgress < certificationsEnd ? 'auto' : 'none',
                 }}
               >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#0f1219]/62">
-                    {scene05.certificationsTitle}
-                  </p>
-                  <div className="h-[6px] flex-1 rounded-full bg-[#0f1219]/8">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="h-[34px] w-[3px] rounded-full bg-gradient-to-b from-[#0f1219] to-[#38558f]" />
+                    <div className="flex flex-col">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#0f1219]/62">
+                        {scene05.certificationsTitle}
+                      </p>
+                      <p className="text-[12px] text-[#0f1219]/50">{scene05.visionTitle}</p>
+                    </div>
+                  </div>
+                  <div className="h-[6px] w-32 rounded-full bg-[#0f1219]/8">
                     <div
                       className="h-full rounded-full bg-[#0f1219]"
                       style={{ width: `${clamp01(sectionProgress(localProgress, certificationsStart, certificationsEnd)) * 100}%` }}
@@ -467,22 +509,25 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                   </div>
                 </div>
 
-                <div className="relative h-[260px] md:h-[310px]">
+                <div className="relative grid gap-4 md:grid-cols-2">
                   {certifications.map((cert, idx) => {
                     const start = certificationsStart + certWindow * idx;
                     const end = start + certWindow;
                     const opacity = calcOpacity(localProgress, start, end, certificationFade);
-                    const transform = getCardTransform(localProgress, start, end, idx, certifications.length, certificationFade);
+                    const side = idx % 2 === 0 ? -1 : 1;
+                    const slideIn = (1 - opacity) * side * 140;
+                    const badgeTag =
+                      scene05.aiTags.length > 0 ? scene05.aiTags[idx % scene05.aiTags.length] : scene05.badge;
 
                     return (
                       <article
                         key={cert.id}
-                        className="absolute inset-0 flex flex-col items-start justify-center gap-4 rounded-[24px] border border-black/8 bg-white/88 p-6 shadow-[0_22px_46px_-24px_rgba(0,0,0,0.25)] backdrop-blur-xl md:p-8"
+                        className="flex flex-col gap-3 rounded-[20px] border border-black/8 bg-white/90 p-5 shadow-[0_22px_46px_-24px_rgba(0,0,0,0.25)] backdrop-blur-xl md:p-6"
                         style={{
                           opacity,
-                          transform,
+                          transform: `translateX(${slideIn}px) translateY(${(1 - opacity) * 16}px)`,
                           pointerEvents: opacity > 0.05 ? 'auto' : 'none',
-                          transition: 'opacity 0.45s ease, transform 0.7s ease',
+                          transition: 'opacity 0.45s ease, transform 0.65s cubic-bezier(0.22, 1, 0.36, 1)',
                         }}
                       >
                         <div className="flex items-center gap-3">
@@ -504,23 +549,28 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                             ) : null}
                           </div>
                         </div>
-                        <h3 className="max-w-[90%] text-left font-serif text-2xl font-semibold leading-tight text-[#0f1219] md:text-[2.1rem]">
+                        <h3 className="max-w-[92%] text-left font-serif text-[1.35rem] font-semibold leading-tight text-[#0f1219] md:text-[1.5rem]">
                           {cert.title}
                         </h3>
-                        {cert.credentialUrl && cert.credentialUrl !== '#' ? (
-                          <a
-                            href={cert.credentialUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-full border border-[#0f1219]/12 px-5 py-2 font-mono text-[12px] uppercase tracking-[0.18em] text-[#0f1219] transition-colors hover:bg-[#0f1219] hover:text-white"
-                          >
-                            {scene05.credentialButtonLabel}
-                          </a>
-                        ) : (
-                          <span className="font-mono text-[12px] uppercase tracking-[0.18em] text-[#0f1219]/60">
-                            {scene05.credentialButtonLabel}
+                        <div className="flex items-center gap-3">
+                          {cert.credentialUrl && cert.credentialUrl !== '#' ? (
+                            <a
+                              href={cert.credentialUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-full border border-[#0f1219]/12 px-4 py-2 font-mono text-[12px] uppercase tracking-[0.18em] text-[#0f1219] transition-colors hover:bg-[#0f1219] hover:text-white"
+                            >
+                              {scene05.credentialButtonLabel}
+                            </a>
+                          ) : (
+                            <span className="font-mono text-[12px] uppercase tracking-[0.18em] text-[#0f1219]/60">
+                              {scene05.credentialButtonLabel}
+                            </span>
+                          )}
+                          <span className="rounded-full bg-[#0f1219]/6 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#0f1219]/65">
+                            {badgeTag}
                           </span>
-                        )}
+                        </div>
                       </article>
                     );
                   })}
