@@ -1,0 +1,123 @@
+#pre {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: #080808;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+#pre-logo {
+  width: min(240px, 36vw);
+  height: min(240px, 36vw);
+  opacity: 0;
+  transform: scale(0.5) rotate(-20deg);
+}
+
+#pre-logo .cls-2 {
+  fill: #080808 !important;
+  stroke: none !important;
+}
+
+#pre-logo .cls-1 {
+  fill: none !important;
+  stroke: #f5f5f5;
+  stroke-width: 7px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: fill 0.5s ease 0.3s;
+}
+
+#pre-logo .path-top {
+  stroke-dasharray: 2400;
+  stroke-dashoffset: 2400;
+  animation: drawPath 1.3s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
+}
+
+#pre-logo .path-bot {
+  stroke-dasharray: 2400;
+  stroke-dashoffset: 2400;
+  animation: drawPath 1.3s cubic-bezier(0.4, 0, 0.2, 1) 0.75s forwards;
+}
+
+@keyframes drawPath {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+#pre-logo.filled .cls-1 {
+  fill: #f5f5f5 !important;
+}
+
+#pre-logo.glowing .cls-1 {
+  filter: drop-shadow(0 0 16px rgba(245, 245, 245, 0.65)) !important;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+#pre-line {
+  width: min(240px, 36vw);
+  height: 1px;
+  background: rgba(245, 245, 245, 0.08);
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  animation: fadeUp 0.6s ease 0.9s forwards;
+}
+
+#pre-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, #f5f5f5, transparent);
+  transform: translateX(-100%);
+  animation: lineSweep 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
+}
+
+#pre.is-waiting #pre-line::after {
+  animation: lineSweepLoop 1.8s linear infinite;
+}
+
+@keyframes lineSweep {
+  0% {
+    transform: translateX(-100%);
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes lineSweepLoop {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0.3;
+  }
+}
