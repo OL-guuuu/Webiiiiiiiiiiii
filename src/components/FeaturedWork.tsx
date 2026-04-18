@@ -14,9 +14,66 @@ interface FeaturedWorkProps {
 
 const isPlaceholderHref = (href: string) => href.trim() === '#';
 
+const getHeaderRevealVars = (style: string) => {
+  if (style === 'fade') {
+    return {
+      from: { y: 0, opacity: 0, rotationX: 0, scale: 1 },
+      to: { y: 0, opacity: 1, rotationX: 0, scale: 1, duration: 0.9, ease: 'power2.out', stagger: 0.1 },
+    };
+  }
+  if (style === 'slide-up' || style === 'fade-up') {
+    return {
+      from: { y: 92, opacity: 0, rotationX: 0, scale: 1 },
+      to: { y: 0, opacity: 1, rotationX: 0, scale: 1, duration: 1.2, ease: 'power3.out', stagger: 0.12 },
+    };
+  }
+  if (style === 'zoom') {
+    return {
+      from: { y: 28, opacity: 0, rotationX: 0, scale: 0.92 },
+      to: { y: 0, opacity: 1, rotationX: 0, scale: 1, duration: 1.2, ease: 'expo.out', stagger: 0.12 },
+    };
+  }
+  return {
+    from: { y: 70, opacity: 0, rotationX: 12, scale: 1, transformOrigin: '0% 50% -40' },
+    to: { y: 0, opacity: 1, rotationX: 0, scale: 1, duration: 1.6, ease: 'expo.out', stagger: 0.12 },
+  };
+};
+
+const getCardRevealVars = (style: string) => {
+  if (style === 'fade') {
+    return {
+      from: { y: 0, opacity: 0, scale: 1, rotationX: 0 },
+      to: { y: 0, opacity: 1, scale: 1, rotationX: 0, duration: 0.9, ease: 'power2.out' },
+    };
+  }
+  if (style === 'slide-up' || style === 'fade-up') {
+    return {
+      from: { y: 110, opacity: 0, scale: 1, rotationX: 0 },
+      to: { y: 0, opacity: 1, scale: 1, rotationX: 0, duration: 1.1, ease: 'power3.out' },
+    };
+  }
+  if (style === 'zoom') {
+    return {
+      from: { y: 50, opacity: 0, scale: 0.88, rotationX: 0 },
+      to: { y: 0, opacity: 1, scale: 1, rotationX: 0, duration: 1.15, ease: 'expo.out' },
+    };
+  }
+  if (style === 'stagger' || style === 'creative') {
+    return {
+      from: { y: 90, opacity: 0, scale: 0.94, rotationX: 10, rotationY: 6 },
+      to: { y: 0, opacity: 1, scale: 1, rotationX: 0, rotationY: 0, duration: 1.35, ease: 'expo.out' },
+    };
+  }
+  return {
+    from: { y: 90, opacity: 0, scale: 0.95, rotationX: 6 },
+    to: { y: 0, opacity: 1, scale: 1, rotationX: 0, duration: 1.35, ease: 'expo.out' },
+  };
+};
+
 export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
   const { siteConfig } = useSiteConfig();
   const { featured, visibility, designSystem } = siteConfig;
+  const sectionAnimations = siteConfig.animation.sectionAnimations;
   const projects = useMemo(() => siteConfig.projects.filter((project) => project.visible), [siteConfig.projects]);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,33 +101,34 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ delay: 0.56 });
 
-      tl.fromTo(
-        '.fw-header-text',
-        { y: 70, opacity: 0, rotationX: 12, transformOrigin: '0% 50% -40' },
-        { y: 0, opacity: 1, rotationX: 0, duration: 1.6, ease: 'expo.out', stagger: 0.12 },
-      );
+      if (sectionAnimations.featuredHeader.enabled && sectionAnimations.featuredHeader.style !== 'none') {
+        const headerVars = getHeaderRevealVars(sectionAnimations.featuredHeader.style);
+        tl.fromTo('.fw-header-text', headerVars.from, headerVars.to);
+      } else {
+        gsap.set('.fw-header-text', { opacity: 1, y: 0, rotationX: 0, scale: 1, clearProps: 'transform' });
+      }
 
       const elements = gsap.utils.toArray<HTMLElement>('.fw-reveal', containerRef.current);
-      elements.forEach((el) => {
-        gsap.fromTo(
-          el,
-          { y: 90, opacity: 0, scale: 0.95, rotationX: 6 },
-          {
-            y: 0,
-            opacity: 1,
-            scale: 1,
-            rotationX: 0,
-            duration: 1.35,
-            ease: 'expo.out',
-            scrollTrigger: {
-              trigger: el,
-              scroller: containerRef.current,
-              start: 'top 86%',
-              toggleActions: 'play none none reverse',
+      if (sectionAnimations.featuredCards.enabled && sectionAnimations.featuredCards.style !== 'none') {
+        const cardVars = getCardRevealVars(sectionAnimations.featuredCards.style);
+        elements.forEach((el) => {
+          gsap.fromTo(
+            el,
+            cardVars.from,
+            {
+              ...cardVars.to,
+              scrollTrigger: {
+                trigger: el,
+                scroller: containerRef.current,
+                start: 'top 86%',
+                toggleActions: 'play none none reverse',
+              },
             },
-          },
-        );
-      });
+          );
+        });
+      } else {
+        gsap.set(elements, { opacity: 1, y: 0, scale: 1, rotationX: 0, rotationY: 0, clearProps: 'transform' });
+      }
 
       if (visibility.testimonialsSection || visibility.featuredCtaSection) {
         gsap.to('.projects-wrapper', {
@@ -120,6 +178,10 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
     visibility.featuredProjectsGrid,
     visibility.testimonialsSection,
     projects.length,
+    sectionAnimations.featuredCards.enabled,
+    sectionAnimations.featuredCards.style,
+    sectionAnimations.featuredHeader.enabled,
+    sectionAnimations.featuredHeader.style,
   ]);
 
   const handleBack = () => {

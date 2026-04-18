@@ -21,6 +21,7 @@ import {
   type SiteGlassVariant,
   type SiteConfig,
   type SiteContentStatus,
+  type SiteElementAnimationStyle,
   type SiteNavItem,
   type SiteArticle,
   type SiteProject,
@@ -523,6 +524,20 @@ const Toggle: React.FC<{ label: string; checked: boolean; onChange: (checked: bo
 const listItemClass =
   'rounded-[12px] border border-white/12 bg-[rgba(0,0,0,0.3)] p-3 md:p-4 space-y-2.5';
 
+const SECTION_ANIMATION_STYLE_OPTIONS: Array<{ value: SiteElementAnimationStyle; label: string }> = [
+  { value: 'none', label: 'No animation' },
+  { value: 'fade', label: 'Fade' },
+  { value: 'fade-up', label: 'Fade Up' },
+  { value: 'slide-up', label: 'Slide Up' },
+  { value: 'cinematic', label: 'Cinematic' },
+  { value: 'stack', label: 'Stack' },
+  { value: 'stagger', label: 'Stagger' },
+  { value: 'creative', label: 'Creative' },
+  { value: 'zoom', label: 'Zoom' },
+  { value: 'glitch', label: 'Glitch' },
+  { value: 'typewriter', label: 'Typewriter' },
+];
+
 export const Dashboard: React.FC = () => {
   const { siteConfig, setSiteConfig, resetSiteConfig } = useSiteConfig();
 
@@ -716,6 +731,25 @@ export const Dashboard: React.FC = () => {
       animation: {
         ...prev.animation,
         activeCursorAnimation: mode,
+      },
+    }));
+  };
+
+  const updateSectionAnimation = <K extends keyof SiteConfig['animation']['sectionAnimations']>(
+    key: K,
+    patch: Partial<SiteConfig['animation']['sectionAnimations'][K]>,
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      animation: {
+        ...prev.animation,
+        sectionAnimations: {
+          ...prev.animation.sectionAnimations,
+          [key]: {
+            ...prev.animation.sectionAnimations[key],
+            ...patch,
+          },
+        },
       },
     }));
   };
@@ -2169,6 +2203,20 @@ export const Dashboard: React.FC = () => {
                               ? { ...prev.scene05.animations, enabled: e.target.checked } 
                               : { enabled: e.target.checked, textRevealStyle: 'cinematic', cardEntranceStyle: 'creative' },
                           },
+                          animation: {
+                            ...prev.animation,
+                            sectionAnimations: {
+                              ...prev.animation.sectionAnimations,
+                              aboutText: {
+                                ...prev.animation.sectionAnimations.aboutText,
+                                enabled: e.target.checked,
+                              },
+                              aboutCards: {
+                                ...prev.animation.sectionAnimations.aboutCards,
+                                enabled: e.target.checked,
+                              },
+                            },
+                          },
                         }))
                       }
                     />
@@ -2200,8 +2248,25 @@ export const Dashboard: React.FC = () => {
                               scene05: {
                                 ...prev.scene05,
                                 animations: prev.scene05.animations
-                                  ? { ...prev.scene05.animations, textRevealStyle: e.target.value as any }
-                                  : { enabled: true, textRevealStyle: e.target.value as any, cardEntranceStyle: 'creative' },
+                                  ? {
+                                      ...prev.scene05.animations,
+                                      textRevealStyle: e.target.value as 'none' | 'fade-up' | 'cinematic' | 'glitch',
+                                    }
+                                  : {
+                                      enabled: true,
+                                      textRevealStyle: e.target.value as 'none' | 'fade-up' | 'cinematic' | 'glitch',
+                                      cardEntranceStyle: 'creative',
+                                    },
+                              },
+                              animation: {
+                                ...prev.animation,
+                                sectionAnimations: {
+                                  ...prev.animation.sectionAnimations,
+                                  aboutText: {
+                                    ...prev.animation.sectionAnimations.aboutText,
+                                    style: e.target.value as SiteElementAnimationStyle,
+                                  },
+                                },
                               },
                             }))
                           }
@@ -2226,8 +2291,25 @@ export const Dashboard: React.FC = () => {
                               scene05: {
                                 ...prev.scene05,
                                 animations: prev.scene05.animations
-                                  ? { ...prev.scene05.animations, cardEntranceStyle: e.target.value as any }
-                                  : { enabled: true, textRevealStyle: 'cinematic', cardEntranceStyle: e.target.value as any },
+                                  ? {
+                                      ...prev.scene05.animations,
+                                      cardEntranceStyle: e.target.value as 'none' | 'stack' | 'stagger' | 'creative',
+                                    }
+                                  : {
+                                      enabled: true,
+                                      textRevealStyle: 'cinematic',
+                                      cardEntranceStyle: e.target.value as 'none' | 'stack' | 'stagger' | 'creative',
+                                    },
+                              },
+                              animation: {
+                                ...prev.animation,
+                                sectionAnimations: {
+                                  ...prev.animation.sectionAnimations,
+                                  aboutCards: {
+                                    ...prev.animation.sectionAnimations.aboutCards,
+                                    style: e.target.value as SiteElementAnimationStyle,
+                                  },
+                                },
                               },
                             }))
                           }
@@ -3304,6 +3386,55 @@ export const Dashboard: React.FC = () => {
       case 'animation':
         return (
           <div className="grid gap-4 xl:grid-cols-[minmax(0,430px)_minmax(0,1fr)]">
+            <Card
+              title="Page Motion Controls"
+              subtitle="Enable/disable and choose animation style per element across Home/About/Projects/Testimonials (Articles excluded)"
+              className="xl:col-span-2"
+            >
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {(
+                  [
+                    {
+                      key: 'aboutText',
+                      label: 'About text sequence',
+                    },
+                    {
+                      key: 'aboutCards',
+                      label: 'About cards (companies/certifications)',
+                    },
+                    {
+                      key: 'featuredHeader',
+                      label: 'Featured section header',
+                    },
+                    {
+                      key: 'featuredCards',
+                      label: 'Project cards',
+                    },
+                    {
+                      key: 'testimonials',
+                      label: 'Testimonials transitions',
+                    },
+                  ] as const
+                ).map((item) => (
+                  <div key={item.key} className="rounded-[12px] border border-white/10 bg-black/20 p-3 space-y-2">
+                    <Toggle
+                      label={item.label}
+                      checked={siteConfig.animation.sectionAnimations[item.key].enabled}
+                      onChange={(next) => updateSectionAnimation(item.key, { enabled: next })}
+                    />
+                    <SelectInput
+                      label="Animation Style"
+                      value={siteConfig.animation.sectionAnimations[item.key].style}
+                      options={SECTION_ANIMATION_STYLE_OPTIONS}
+                      onChange={(next) =>
+                        updateSectionAnimation(item.key, { style: next as SiteElementAnimationStyle })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </Card>
+
             <Card title="Animation Selector" subtitle="Pick one cursor animation and tune its own properties">
               <div className="grid gap-2 sm:grid-cols-3">
                 {[

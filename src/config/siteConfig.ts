@@ -13,6 +13,32 @@ export type SiteCursorAnimationMode =
   | 'beam'
   | 'plasma';
 
+export type SiteElementAnimationStyle =
+  | 'none'
+  | 'fade'
+  | 'fade-up'
+  | 'slide-up'
+  | 'cinematic'
+  | 'stack'
+  | 'stagger'
+  | 'creative'
+  | 'zoom'
+  | 'glitch'
+  | 'typewriter';
+
+export interface SiteElementAnimationConfig {
+  enabled: boolean;
+  style: SiteElementAnimationStyle;
+}
+
+export interface SiteSectionAnimationsConfig {
+  aboutText: SiteElementAnimationConfig;
+  aboutCards: SiteElementAnimationConfig;
+  featuredHeader: SiteElementAnimationConfig;
+  featuredCards: SiteElementAnimationConfig;
+  testimonials: SiteElementAnimationConfig;
+}
+
 export const SITE_SOCIAL_ICON_KEYS = [
   'behance',
   'linkedin',
@@ -435,6 +461,7 @@ export interface SiteConfig {
     spark: SiteCursorSparkConfig;
     beam: SiteCursorBeamConfig;
     plasma: SiteCursorPlasmaConfig;
+    sectionAnimations: SiteSectionAnimationsConfig;
   };
   cinematicSequence: SiteCinematicSequenceConfig;
   globalFrame: SiteGlobalFrameConfig;
@@ -688,6 +715,11 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     aiTags: ['AI Workflows', 'Figma', 'Claude Code', 'Systems'],
     actionLabel: 'Connect With Me',
     actionHref: '#',
+    animations: {
+      enabled: true,
+      textRevealStyle: 'cinematic',
+      cardEntranceStyle: 'creative',
+    },
   },
   persistentUI: {
     logoAlt: 'Oussama Lassoued',
@@ -1008,6 +1040,13 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       opacity: 0.3,
       smoothing: 0.16,
     },
+    sectionAnimations: {
+      aboutText: { enabled: true, style: 'cinematic' },
+      aboutCards: { enabled: true, style: 'creative' },
+      featuredHeader: { enabled: true, style: 'cinematic' },
+      featuredCards: { enabled: true, style: 'stagger' },
+      testimonials: { enabled: true, style: 'cinematic' },
+    },
   },
   cinematicSequence: {
     skipScene06Exit: false,
@@ -1095,6 +1134,34 @@ const asCursorAnimationMode = (
     : fallback;
 };
 
+const asElementAnimationStyle = (
+  value: unknown,
+  fallback: SiteElementAnimationStyle,
+): SiteElementAnimationStyle => {
+  return typeof value === 'string' &&
+    ['none', 'fade', 'fade-up', 'slide-up', 'cinematic', 'stack', 'stagger', 'creative', 'zoom', 'glitch', 'typewriter'].includes(value)
+    ? (value as SiteElementAnimationStyle)
+    : fallback;
+};
+
+const asScene05TextRevealStyle = (
+  value: unknown,
+  fallback: NonNullable<SiteConfig['scene05']['animations']>['textRevealStyle'],
+): NonNullable<SiteConfig['scene05']['animations']>['textRevealStyle'] => {
+  return typeof value === 'string' && ['none', 'fade-up', 'cinematic', 'glitch'].includes(value)
+    ? (value as NonNullable<SiteConfig['scene05']['animations']>['textRevealStyle'])
+    : fallback;
+};
+
+const asScene05CardEntranceStyle = (
+  value: unknown,
+  fallback: NonNullable<SiteConfig['scene05']['animations']>['cardEntranceStyle'],
+): NonNullable<SiteConfig['scene05']['animations']>['cardEntranceStyle'] => {
+  return typeof value === 'string' && ['none', 'stack', 'stagger', 'creative'].includes(value)
+    ? (value as NonNullable<SiteConfig['scene05']['animations']>['cardEntranceStyle'])
+    : fallback;
+};
+
 const asSocialIconKey = (value: unknown, fallback: SiteSocialIconKey): SiteSocialIconKey => {
   return typeof value === 'string' && SITE_SOCIAL_ICON_KEYS.includes(value as SiteSocialIconKey)
     ? (value as SiteSocialIconKey)
@@ -1145,9 +1212,16 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   const spark = isRecord(animation.spark) ? animation.spark : {};
   const beam = isRecord(animation.beam) ? animation.beam : {};
   const plasma = isRecord(animation.plasma) ? animation.plasma : {};
+  const sectionAnimations = isRecord(animation.sectionAnimations) ? animation.sectionAnimations : {};
+  const aboutTextMotion = isRecord(sectionAnimations.aboutText) ? sectionAnimations.aboutText : {};
+  const aboutCardsMotion = isRecord(sectionAnimations.aboutCards) ? sectionAnimations.aboutCards : {};
+  const featuredHeaderMotion = isRecord(sectionAnimations.featuredHeader) ? sectionAnimations.featuredHeader : {};
+  const featuredCardsMotion = isRecord(sectionAnimations.featuredCards) ? sectionAnimations.featuredCards : {};
+  const testimonialsMotion = isRecord(sectionAnimations.testimonials) ? sectionAnimations.testimonials : {};
   const cinematicSequence = isRecord(value.cinematicSequence) ? value.cinematicSequence : {};
   const globalFrame = isRecord(value.globalFrame) ? value.globalFrame : {};
   const visibility = isRecord(value.visibility) ? value.visibility : {};
+  const scene05Animations = isRecord(scene05.animations) ? scene05.animations : {};
 
   const projects = Array.isArray(value.projects)
     ? value.projects
@@ -1510,6 +1584,20 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
       aiTags: aiTags.length > 0 ? aiTags : DEFAULT_SITE_CONFIG.scene05.aiTags,
       actionLabel: asString(scene05.actionLabel, DEFAULT_SITE_CONFIG.scene05.actionLabel),
       actionHref: asString(scene05.actionHref, DEFAULT_SITE_CONFIG.scene05.actionHref),
+      animations: {
+        enabled: asBoolean(
+          scene05Animations.enabled,
+          DEFAULT_SITE_CONFIG.scene05.animations?.enabled ?? true,
+        ),
+        textRevealStyle: asScene05TextRevealStyle(
+          scene05Animations.textRevealStyle,
+          DEFAULT_SITE_CONFIG.scene05.animations?.textRevealStyle ?? 'cinematic',
+        ),
+        cardEntranceStyle: asScene05CardEntranceStyle(
+          scene05Animations.cardEntranceStyle,
+          DEFAULT_SITE_CONFIG.scene05.animations?.cardEntranceStyle ?? 'creative',
+        ),
+      },
     },
     persistentUI: {
       logoAlt: asString(persistentUI.logoAlt, DEFAULT_SITE_CONFIG.persistentUI.logoAlt),
@@ -2214,6 +2302,58 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
           0.02,
           0.5,
         ),
+      },
+      sectionAnimations: {
+        aboutText: {
+          enabled: asBoolean(
+            aboutTextMotion.enabled,
+            DEFAULT_SITE_CONFIG.animation.sectionAnimations.aboutText.enabled,
+          ),
+          style: asElementAnimationStyle(
+            aboutTextMotion.style,
+            DEFAULT_SITE_CONFIG.animation.sectionAnimations.aboutText.style,
+          ),
+        },
+        aboutCards: {
+          enabled: asBoolean(
+            aboutCardsMotion.enabled,
+            DEFAULT_SITE_CONFIG.animation.sectionAnimations.aboutCards.enabled,
+          ),
+          style: asElementAnimationStyle(
+            aboutCardsMotion.style,
+            DEFAULT_SITE_CONFIG.animation.sectionAnimations.aboutCards.style,
+          ),
+        },
+        featuredHeader: {
+          enabled: asBoolean(
+            featuredHeaderMotion.enabled,
+            DEFAULT_SITE_CONFIG.animation.sectionAnimations.featuredHeader.enabled,
+          ),
+          style: asElementAnimationStyle(
+            featuredHeaderMotion.style,
+            DEFAULT_SITE_CONFIG.animation.sectionAnimations.featuredHeader.style,
+          ),
+        },
+        featuredCards: {
+          enabled: asBoolean(
+            featuredCardsMotion.enabled,
+            DEFAULT_SITE_CONFIG.animation.sectionAnimations.featuredCards.enabled,
+          ),
+          style: asElementAnimationStyle(
+            featuredCardsMotion.style,
+            DEFAULT_SITE_CONFIG.animation.sectionAnimations.featuredCards.style,
+          ),
+        },
+        testimonials: {
+          enabled: asBoolean(
+            testimonialsMotion.enabled,
+            DEFAULT_SITE_CONFIG.animation.sectionAnimations.testimonials.enabled,
+          ),
+          style: asElementAnimationStyle(
+            testimonialsMotion.style,
+            DEFAULT_SITE_CONFIG.animation.sectionAnimations.testimonials.style,
+          ),
+        },
       },
     },
     cinematicSequence: {

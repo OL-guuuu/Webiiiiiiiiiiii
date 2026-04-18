@@ -14,6 +14,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
   const { siteConfig } = useSiteConfig();
   const testimonials = siteConfig.testimonials.filter((item) => item.visible);
   const dsComponents = siteConfig.designSystem.components;
+  const testimonialAnimation = siteConfig.animation.sectionAnimations.testimonials;
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   
@@ -67,6 +68,12 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
   const changeTestimonial = (index: number) => {
     if (testimonials.length === 0) return;
     if (isAnimating || index === activeIndex) return;
+
+     if (!testimonialAnimation.enabled || testimonialAnimation.style === 'none') {
+      setActiveIndex(index);
+      return;
+    }
+
     setIsAnimating(true);
 
     if (!contentRef.current) {
@@ -77,26 +84,62 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
 
     gsap.killTweensOf(contentRef.current);
 
+    const getEnterVars = () => {
+      if (testimonialAnimation.style === 'fade') {
+        return { y: 0, opacity: 1, filter: 'blur(0px)', rotationX: 0, scale: 1, duration: 0.8, ease: 'power2.out' };
+      }
+      if (testimonialAnimation.style === 'slide-up' || testimonialAnimation.style === 'fade-up') {
+        return { y: 0, opacity: 1, filter: 'blur(0px)', rotationX: 0, scale: 1, duration: 1, ease: 'power3.out' };
+      }
+      if (testimonialAnimation.style === 'zoom') {
+        return { y: 0, opacity: 1, filter: 'blur(0px)', rotationX: 0, scale: 1, duration: 1.05, ease: 'expo.out' };
+      }
+      if (testimonialAnimation.style === 'stagger' || testimonialAnimation.style === 'creative') {
+        return { y: 0, opacity: 1, filter: 'blur(0px)', rotationX: 0, scale: 1, duration: 1.2, ease: 'expo.out' };
+      }
+      return { y: 0, opacity: 1, filter: 'blur(0px)', rotationX: 0, scale: 1, duration: 1.4, ease: 'power4.out' };
+    };
+
+    const getExitVars = () => {
+      if (testimonialAnimation.style === 'fade') {
+        return { y: 0, opacity: 0, filter: 'blur(4px)', rotationX: 0, scale: 1, duration: 0.42, ease: 'power2.in' };
+      }
+      if (testimonialAnimation.style === 'slide-up' || testimonialAnimation.style === 'fade-up') {
+        return { y: -36, opacity: 0, filter: 'blur(6px)', rotationX: 0, scale: 1, duration: 0.5, ease: 'power3.in' };
+      }
+      if (testimonialAnimation.style === 'zoom') {
+        return { y: -20, opacity: 0, filter: 'blur(8px)', rotationX: 0, scale: 0.92, duration: 0.55, ease: 'power3.in' };
+      }
+      if (testimonialAnimation.style === 'stagger' || testimonialAnimation.style === 'creative') {
+        return { y: -18, opacity: 0, filter: 'blur(8px)', rotationX: 10, scale: 0.96, duration: 0.6, ease: 'power3.in' };
+      }
+      return { y: -20, opacity: 0, filter: 'blur(8px)', rotationX: 10, scale: 1, duration: 0.7, ease: 'power3.in' };
+    };
+
     const tl = gsap.timeline({
       onComplete: () => {
         setActiveIndex(index);
 
+        const enterVars = getEnterVars();
+
         gsap.fromTo(
           contentRef.current,
-          { y: 20, opacity: 0, filter: 'blur(8px)', rotationX: -10, transformOrigin: 'center center' },
-          { y: 0, opacity: 1, filter: 'blur(0px)', rotationX: 0, duration: 1.4, ease: 'power4.out', onComplete: () => setIsAnimating(false) }
+          {
+            y: testimonialAnimation.style === 'slide-up' || testimonialAnimation.style === 'fade-up' ? 44 : 20,
+            opacity: 0,
+            filter: 'blur(8px)',
+            rotationX: -10,
+            scale: testimonialAnimation.style === 'zoom' ? 0.9 : 1,
+            transformOrigin: 'center center',
+          },
+          { ...enterVars, onComplete: () => setIsAnimating(false) }
         );
       }
     });
 
     tl.to(contentRef.current, {
-      y: -20,
-      opacity: 0,
-      filter: 'blur(8px)',
-      rotationX: 10,
+      ...getExitVars(),
       transformOrigin: 'center center',
-      duration: 0.7,
-      ease: 'power3.in'
     });
   };
 
@@ -204,4 +247,3 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
     </div>
   );
 };
-
