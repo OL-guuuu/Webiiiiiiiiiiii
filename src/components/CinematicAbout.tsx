@@ -13,6 +13,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
   const aboutMotion = siteConfig.animation.sections.about;
 
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [smoothProgress, setSmoothProgress] = useState(progress);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -24,6 +25,28 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  useEffect(() => {
+    let frame: number | null = null;
+    let active = true;
+
+    const step = () => {
+      setSmoothProgress((prev) => {
+        const next = clamp01(prev + (progress - prev) * 0.18);
+        if (!active) return prev;
+        if (Math.abs(next - progress) < 0.0004) return progress;
+        frame = requestAnimationFrame(step);
+        return next;
+      });
+    };
+
+    frame = requestAnimationFrame(step);
+
+    return () => {
+      active = false;
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [progress]);
 
   const statements = useMemo(() => {
     const narrative = [scene05.visionText, ...scene05.storyParagraphs];
@@ -60,9 +83,8 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
     return base;
   };
 
-  const localProgress = progress;
+  const localProgress = smoothProgress;
   const textFade = rhythmValue(aboutMotion.textRhythm, 0.06);
-  const textWindow = rhythmValue(aboutMotion.textRhythm, 0.12);
   const certificationFade = rhythmValue(aboutMotion.certificationRhythm, 0.06);
 
   const calcOpacity = (p: number, start: number, end: number, fadeLen = 0.05) => {
@@ -173,23 +195,28 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
 
   const isActive = progress > 0.01 && progress <= 1.0;
 
+  const heroStart = -0.05;
+  const heroEnd = 0.32;
   const statementsStart = 0.18;
-  const statementsEnd = 0.6;
-  const statementsWindow = statements.length > 0 ? (statementsEnd - statementsStart) / statements.length : 0.18;
+  const statementsEnd = 0.58;
+  const skillsStart = 0.32;
+  const skillsEnd = 0.74;
+  const certificationsStart = 0.52;
+  const certificationsEnd = 0.94;
+  const experienceStart = 0.72;
+  const experienceEnd = 1.08;
 
-  const certificationsStart = 0.64;
-  const certificationsEnd = 0.97;
+  const statementsWindow = statements.length > 0 ? (statementsEnd - statementsStart) / statements.length : 0.18;
   const certWindow =
     certifications.length > 0
       ? (certificationsEnd - certificationsStart) / certifications.length
       : certificationsEnd - certificationsStart;
 
-  const experienceStart = 0.82;
-  const experienceEnd = 1.02;
+  const sectionProgress = (p: number, start: number, end: number) => clamp01((p - start) / (end - start));
 
   const renderStatementTransform = (p: number, start: number, end: number) => {
     if (aboutMotion.textSequenceStyle === 'slice') {
-      return `${getTransformDirectional(p, start, end, 'left', textFade)} skewY(${(1 - clamp01((p - start) / (end - start))) * 6 - 3}deg)`;
+      return `${getTransformDirectional(p, start, end, 'left', textFade)} skewY(${(1 - clamp01((p - start) / (end - start))) * 4 - 2}deg)`;
     }
     if (aboutMotion.textSequenceStyle === 'typewriter') {
       return getTransformDirectional(p, start, end, 'letter-spacing', textFade);
@@ -223,251 +250,358 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
         <div className="h-[60%] w-[60%] rotate-12 rounded-[42%] border border-white/20 bg-white/4 blur-3xl" />
       </div>
 
-      {/* Hero */}
-      <div
-        className="absolute inset-0 flex flex-col items-center justify-center text-center transition-all duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform"
-        style={{
-          opacity: calcOpacity(localProgress, -0.1, 0.24),
-          transform: getTransformDirectional(localProgress, -0.1, 0.24, 'blur-in'),
-          pointerEvents: localProgress >= 0 && localProgress < 0.24 ? 'auto' : 'none',
-        }}
-      >
-        {scene05.portraitImage ? (
-          <img
-            src={scene05.portraitImage}
-            alt={scene05.portraitAlt || 'Portrait'}
-            className="mb-8 h-32 w-32 rounded-full border-4 border-white object-cover shadow-2xl drop-shadow-xl md:h-40 md:w-40"
-            style={{
-              opacity: localProgress > -0.05 ? 1 : 0,
-              transform: `scale(${localProgress > -0.05 ? 1 : 0.8})`,
-              transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            }}
-          />
-        ) : null}
-        <h1 className="relative mb-3 min-h-[1.2em] inline-block text-5xl font-serif font-light tracking-tight text-[#0f1219] drop-shadow-2xl md:text-7xl">
-          {(() => {
-            const startWrite = 0.0;
-            const endWrite = 0.16;
-            const writeProg = clamp01((localProgress - startWrite) / (endWrite - startWrite));
-            const charsToShow = Math.floor(writeProg * scene05.name.length);
-            return (
-              <span className="relative">
-                {scene05.name.substring(0, charsToShow)}
-                <span
-                  className={`ml-1 inline-block h-[1em] w-1 align-middle bg-[#0f1219] ${
-                    writeProg >= 1 ? 'opacity-0' : 'animate-pulse'
-                  }`}
-                />
-              </span>
-            );
-          })()}
-        </h1>
-        <p
-          className="text-sm font-mono uppercase tracking-[0.3em] text-[#0f1219]/60 md:text-xl"
-          style={{
-            opacity: localProgress > 0.1 ? 1 : 0,
-            transform: `translateY(${localProgress > 0.1 ? 0 : 20}px)`,
-            transition: 'all 0.6s ease-out',
-          }}
-        >
-          {scene05.role}
-        </p>
-      </div>
-
-      {/* Statements */}
-      <div className="absolute inset-0 flex items-center justify-center px-6">
-        <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-4 text-center md:gap-6">
-          {statements.map((statement, index) => {
-            const start = statementsStart + statementsWindow * index;
-            const end = start + statementsWindow;
-            const opacity = calcOpacity(localProgress, start, end, textFade);
-            const transform = renderStatementTransform(localProgress, start, end);
-
-            return (
-              <p
-                key={`${statement}-${index}`}
-                className="font-serif text-[2.2rem] leading-[1.14] text-[#0f1219] drop-shadow-md md:text-6xl"
+      <div className="absolute inset-0 px-5 py-10 md:px-10 md:py-14">
+        <div className="mx-auto flex h-full max-w-6xl flex-col gap-7">
+          <div className="grid h-full gap-6 lg:grid-cols-[1.06fr_0.94fr]">
+            <div className="flex flex-col gap-6">
+              <div
+                className="group relative overflow-hidden rounded-[32px] border border-white/20 bg-white/80 p-6 shadow-[0_28px_60px_-26px_rgba(0,0,0,0.35)] backdrop-blur-[16px] md:p-8"
                 style={{
-                  opacity,
-                  transform,
-                  pointerEvents: opacity > 0.1 ? 'auto' : 'none',
-                  transition: 'transform 0.6s ease, opacity 0.6s ease',
-                  mixBlendMode: 'multiply',
+                  opacity: calcOpacity(localProgress, heroStart, heroEnd, 0.14),
+                  transform: `translateY(${(1 - sectionProgress(localProgress, heroStart, heroEnd)) * 20 - 12}px)`,
+                  pointerEvents: localProgress > heroStart && localProgress < heroEnd ? 'auto' : 'none',
                 }}
               >
-                {statement}
-              </p>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Skills */}
-      <div
-        className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
-        style={{
-          opacity: calcOpacity(localProgress, 0.52, 0.8, 0.08),
-          pointerEvents: localProgress > 0.52 && localProgress < 0.82 ? 'auto' : 'none',
-        }}
-      >
-        <h2 className="mb-10 text-[11px] font-mono uppercase tracking-[0.2em] text-[#0f1219]/58">{scene05.skillsTitle}</h2>
-        <div className="relative flex max-w-5xl flex-wrap justify-center gap-4 md:gap-6 lg:gap-8">
-          {scene05.skills.map((skill, idx) => {
-            const baseStyle =
-              aboutMotion.skillMode === 'tiles'
-                ? {
-                    transform: `translate3d(${Math.sin(idx + mousePos.x) * 16}px, ${
-                      Math.cos(idx + mousePos.y) * 12
-                    }px, 0) scale(${0.96 + (Math.sin(idx * 1.3) + 1) * 0.02})`,
-                  }
-                : {
-                    transform: getRainTransform(localProgress, 0.52, 0.8, idx, scene05.skills.length, mousePos.x, mousePos.y),
-                  };
-
-            return (
-              <span
-                key={`${skill}-${idx}`}
-                className="pointer-events-auto rounded-[18px] border border-[#0f1219]/10 bg-gradient-to-b from-white/90 to-white/70 px-6 py-3.5 text-lg font-bold text-[#0f1219] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] backdrop-blur-md md:px-8 md:text-xl"
-                style={{
-                  ...baseStyle,
-                  transition: 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                }}
-              >
-                {skill}
-              </span>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Certifications */}
-      <div
-        className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
-        style={{
-          opacity: calcOpacity(localProgress, certificationsStart, certificationsEnd, certificationFade),
-          pointerEvents:
-            localProgress > certificationsStart && localProgress < certificationsEnd ? 'auto' : 'none',
-        }}
-      >
-        <h2 className="mb-8 text-[11px] font-mono uppercase tracking-[0.2em] text-[#0f1219]/60">
-          {scene05.certificationsTitle}
-        </h2>
-        <div className="relative flex h-[360px] w-full max-w-2xl items-center justify-center md:h-[420px]">
-          {certifications.map((cert, idx) => {
-            const start = certificationsStart + certWindow * idx;
-            const end = start + certWindow;
-            const opacity = calcOpacity(localProgress, start, end, certificationFade);
-            const transform = getCardTransform(localProgress, start, end, idx, certifications.length, certificationFade);
-
-            return (
-              <article
-                key={cert.id}
-                className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-[28px] border border-black/8 bg-gradient-to-tr from-white/95 to-white/70 p-10 shadow-2xl backdrop-blur-xl"
-                style={{
-                  opacity,
-                  transform,
-                  pointerEvents: opacity > 0.05 ? 'auto' : 'none',
-                  transition: 'opacity 0.45s ease, transform 0.7s ease',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-black/5">
-                    {cert.logoSrc ? (
-                      <img src={cert.logoSrc} alt={cert.issuer} className="h-10 w-10 object-contain" />
-                    ) : (
-                      <span className="text-xl text-black/30">★</span>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-start text-left">
-                    <span className="rounded-full bg-black/5 px-3 py-1 text-[12px] font-mono uppercase tracking-[0.2em] text-[#0f1219]/60">
-                      {cert.issuer}
-                    </span>
-                    {cert.year ? (
-                      <span className="text-[12px] font-mono uppercase tracking-[0.2em] text-[#0f1219]/40">
-                        {cert.year}
-                      </span>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(96,132,185,0.16),transparent_32%),radial-gradient(circle_at_80%_0%,rgba(15,18,25,0.06),transparent_40%)]" />
+                <div className="relative flex flex-col gap-6 md:flex-row md:items-center">
+                  <div className="relative">
+                    <div
+                      className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(15,18,25,0.08),transparent_60%)]"
+                      style={{
+                        transform: `translate3d(${mousePos.x * 6}px, ${mousePos.y * 6}px, 0) scale(1.08)`,
+                        transition: 'transform 0.4s ease-out',
+                      }}
+                    />
+                    {scene05.portraitImage ? (
+                      <img
+                        src={scene05.portraitImage}
+                        alt={scene05.portraitAlt || 'Portrait'}
+                        className="relative z-10 h-32 w-32 rounded-full border-4 border-white object-cover shadow-2xl drop-shadow-xl md:h-40 md:w-40"
+                        style={{
+                          opacity: localProgress > -0.05 ? 1 : 0,
+                          transform: `scale(${localProgress > -0.05 ? 1 : 0.9})`,
+                          transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        }}
+                      />
                     ) : null}
                   </div>
+
+                  <div className="flex flex-1 flex-col gap-4 text-left">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-[#0f1219]/14 bg-white/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[#0f1219]/72 shadow-sm">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#0f1219]/70" />
+                        {scene05.badge}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[#0f1219]/10 bg-[#0f1219]/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f1219]/72">
+                        {scene05.role}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <h1 className="relative inline-block min-h-[1.2em] text-5xl font-serif font-light tracking-tight text-[#0f1219] drop-shadow-2xl md:text-6xl">
+                        {(() => {
+                          const startWrite = 0.0;
+                          const endWrite = 0.18;
+                          const writeProg = clamp01((localProgress - startWrite) / (endWrite - startWrite));
+                          const charsToShow = Math.floor(writeProg * scene05.name.length);
+                          return (
+                            <span className="relative">
+                              {scene05.name.substring(0, charsToShow)}
+                              <span
+                                className={`ml-1 inline-block h-[1em] w-1 align-middle bg-[#0f1219] ${
+                                  writeProg >= 1 ? 'opacity-0' : 'animate-pulse'
+                                }`}
+                              />
+                            </span>
+                          );
+                        })()}
+                      </h1>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="rounded-2xl border border-[#0f1219]/8 bg-white/70 p-3 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.35)]">
+                        <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#0f1219]/60">
+                          {scene05.visionTitle}
+                        </p>
+                        <p className="text-sm text-[#0f1219]/80">{scene05.visionText}</p>
+                      </div>
+                      <div className="rounded-2xl border border-[#0f1219]/8 bg-white/70 p-3 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.35)]">
+                        <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#0f1219]/60">
+                          {scene05.aiTitle}
+                        </p>
+                        <p className="text-sm text-[#0f1219]/80">{scene05.aiText}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="max-w-[90%] text-center font-serif text-2xl font-semibold leading-tight text-[#0f1219] md:text-4xl">
-                  {cert.title}
-                </h3>
-                {cert.credentialUrl && cert.credentialUrl !== '#' ? (
-                  <a
-                    href={cert.credentialUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-full border border-[#0f1219]/12 px-5 py-2 font-mono text-[12px] uppercase tracking-[0.18em] text-[#0f1219] transition-colors hover:bg-[#0f1219] hover:text-white"
-                  >
-                    {scene05.credentialButtonLabel}
-                  </a>
-                ) : (
-                  <span className="font-mono text-[12px] uppercase tracking-[0.18em] text-[#0f1219]/60">
-                    {scene05.credentialButtonLabel}
-                  </span>
-                )}
-              </article>
-            );
-          })}
-        </div>
+              </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <a
-            href={scene05.actionHref === '#' ? undefined : scene05.actionHref}
-            onClick={scene05.actionHref === '#' ? (e) => e.preventDefault() : undefined}
-            className="inline-flex items-center justify-center rounded-full bg-[#0f1219] px-8 py-3.5 text-sm font-medium tracking-wide text-white shadow-lg shadow-[#0f1219]/20 transition-colors hover:bg-[#0f1219]/85"
-          >
-            {scene05.actionLabel}
-          </a>
-        </div>
-      </div>
-
-      {/* Experience + Companies */}
-      <div
-        className="absolute inset-0 flex items-end justify-center px-6 pb-16"
-        style={{
-          opacity: calcOpacity(localProgress, experienceStart, experienceEnd, 0.1),
-          pointerEvents: localProgress > experienceStart ? 'auto' : 'none',
-        }}
-      >
-        <div className="flex w-full max-w-5xl flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-            {companies.map((company, idx) => (
-              <span
-                key={company.id}
-                className="rounded-full border border-[#0f1219]/12 bg-white/70 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-[#0f1219]/70 shadow-sm"
+              <div
+                className="relative overflow-hidden rounded-[28px] border border-black/8 bg-white/72 p-5 shadow-[0_18px_44px_-24px_rgba(0,0,0,0.2)] backdrop-blur-[12px]"
                 style={{
-                  transform: `translateY(${Math.sin(idx + localProgress * 10) * 6}px)`,
-                  transition: 'transform 0.5s ease',
+                  opacity: calcOpacity(localProgress, statementsStart, statementsEnd, textFade),
+                  transform: `translateY(${(1 - sectionProgress(localProgress, statementsStart, statementsEnd)) * 26 - 8}px)`,
+                  pointerEvents: localProgress > statementsStart && localProgress < statementsEnd ? 'auto' : 'none',
                 }}
               >
-                {company.name}
-              </span>
-            ))}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="h-[34px] w-[3px] rounded-full bg-gradient-to-b from-[#0f1219] to-[#38558f]" />
+                  <div className="flex flex-col">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#0f1219]/60">
+                        {scene05.storyTitle}
+                      </p>
+                      <p className="text-sm text-[#0f1219]/60">{scene05.portraitCaption || scene05.visionText}</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-[#0f1219]/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0f1219]/70">
+                    {Math.round(clamp01(localProgress) * 100)}%
+                  </span>
+                </div>
+
+                <div className="relative mt-5 min-h-[170px]">
+                  {statements.map((statement, index) => {
+                    const start = statementsStart + statementsWindow * index;
+                    const end = start + statementsWindow;
+                    const opacity = calcOpacity(localProgress, start, end, textFade);
+                    const transform = renderStatementTransform(localProgress, start, end);
+                    const railOffset =
+                      (index - sectionProgress(localProgress, statementsStart, statementsEnd) * statements.length) * 38;
+
+                    return (
+                      <p
+                        key={`${statement}-${index}`}
+                        className="absolute inset-x-0 font-serif text-[1.9rem] leading-[1.16] text-[#0f1219] drop-shadow-md md:text-[2.6rem]"
+                        style={{
+                          opacity,
+                          transform: `${transform} translateY(${railOffset}px)`,
+                          pointerEvents: opacity > 0.1 ? 'auto' : 'none',
+                          transition: 'transform 0.6s ease, opacity 0.6s ease',
+                        }}
+                      >
+                        {statement}
+                      </p>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-6">
+              <div
+                className="relative overflow-hidden rounded-[28px] border border-black/8 bg-white/78 p-5 shadow-[0_18px_44px_-24px_rgba(0,0,0,0.2)] backdrop-blur-[14px]"
+                style={{
+                  opacity: calcOpacity(localProgress, skillsStart, skillsEnd, 0.12),
+                  transform: `translateY(${(1 - sectionProgress(localProgress, skillsStart, skillsEnd)) * 20 - 6}px)`,
+                  pointerEvents: localProgress > skillsStart && localProgress < skillsEnd ? 'auto' : 'none',
+                }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#0f1219]/60">
+                    {scene05.skillsTitle}
+                  </p>
+                  <span className="rounded-full border border-[#0f1219]/10 bg-[#0f1219]/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0f1219]/70">
+                    {aboutMotion.skillMode === 'rain' ? 'Rain' : 'Tiles'}
+                  </span>
+                </div>
+
+                <div className="relative mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+                  {scene05.skills.map((skill, idx) => {
+                    const baseStyle =
+                      aboutMotion.skillMode === 'tiles'
+                        ? {
+                            transform: `translate3d(${Math.sin(idx + mousePos.x) * 16}px, ${
+                              Math.cos(idx + mousePos.y) * 12
+                            }px, 0) scale(${0.94 + (Math.sin(idx * 1.2) + 1) * 0.03})`,
+                          }
+                        : {
+                            transform: getRainTransform(
+                              localProgress,
+                              skillsStart,
+                              skillsEnd,
+                              idx,
+                              scene05.skills.length,
+                              mousePos.x,
+                              mousePos.y,
+                            ),
+                          };
+
+                    return (
+                      <span
+                        key={`${skill}-${idx}`}
+                        className="pointer-events-auto rounded-[16px] border border-[#0f1219]/10 bg-gradient-to-b from-white/92 to-white/74 px-4 py-3 text-sm font-semibold text-[#0f1219] shadow-[0_18px_40px_-22px_rgba(0,0,0,0.2)] backdrop-blur-md md:px-5 md:text-base"
+                        style={{
+                          ...baseStyle,
+                          transition: 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        }}
+                      >
+                        {skill}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div
+                className="relative overflow-hidden rounded-[28px] border border-black/8 bg-gradient-to-br from-white/95 to-white/78 p-5 shadow-[0_22px_48px_-24px_rgba(0,0,0,0.25)] backdrop-blur-[16px]"
+                style={{
+                  opacity: calcOpacity(localProgress, certificationsStart, certificationsEnd, certificationFade),
+                  transform: `translateY(${(1 - sectionProgress(localProgress, certificationsStart, certificationsEnd)) * 20 - 8}px)`,
+                  pointerEvents:
+                    localProgress > certificationsStart && localProgress < certificationsEnd ? 'auto' : 'none',
+                }}
+              >
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#0f1219]/62">
+                    {scene05.certificationsTitle}
+                  </p>
+                  <div className="h-[6px] flex-1 rounded-full bg-[#0f1219]/8">
+                    <div
+                      className="h-full rounded-full bg-[#0f1219]"
+                      style={{ width: `${clamp01(sectionProgress(localProgress, certificationsStart, certificationsEnd)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="relative h-[260px] md:h-[310px]">
+                  {certifications.map((cert, idx) => {
+                    const start = certificationsStart + certWindow * idx;
+                    const end = start + certWindow;
+                    const opacity = calcOpacity(localProgress, start, end, certificationFade);
+                    const transform = getCardTransform(localProgress, start, end, idx, certifications.length, certificationFade);
+
+                    return (
+                      <article
+                        key={cert.id}
+                        className="absolute inset-0 flex flex-col items-start justify-center gap-4 rounded-[24px] border border-black/8 bg-white/88 p-6 shadow-[0_22px_46px_-24px_rgba(0,0,0,0.25)] backdrop-blur-xl md:p-8"
+                        style={{
+                          opacity,
+                          transform,
+                          pointerEvents: opacity > 0.05 ? 'auto' : 'none',
+                          transition: 'opacity 0.45s ease, transform 0.7s ease',
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-black/5">
+                            {cert.logoSrc ? (
+                              <img src={cert.logoSrc} alt={cert.issuer} className="h-10 w-10 object-contain" />
+                            ) : (
+                              <span className="text-xl text-black/30">★</span>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-start text-left">
+                            <span className="rounded-full bg-black/5 px-3 py-1 text-[12px] font-mono uppercase tracking-[0.2em] text-[#0f1219]/60">
+                              {cert.issuer}
+                            </span>
+                            {cert.year ? (
+                              <span className="text-[12px] font-mono uppercase tracking-[0.2em] text-[#0f1219]/40">
+                                {cert.year}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                        <h3 className="max-w-[90%] text-left font-serif text-2xl font-semibold leading-tight text-[#0f1219] md:text-[2.1rem]">
+                          {cert.title}
+                        </h3>
+                        {cert.credentialUrl && cert.credentialUrl !== '#' ? (
+                          <a
+                            href={cert.credentialUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border border-[#0f1219]/12 px-5 py-2 font-mono text-[12px] uppercase tracking-[0.18em] text-[#0f1219] transition-colors hover:bg-[#0f1219] hover:text-white"
+                          >
+                            {scene05.credentialButtonLabel}
+                          </a>
+                        ) : (
+                          <span className="font-mono text-[12px] uppercase tracking-[0.18em] text-[#0f1219]/60">
+                            {scene05.credentialButtonLabel}
+                          </span>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <a
+                    href={scene05.actionHref === '#' ? undefined : scene05.actionHref}
+                    onClick={scene05.actionHref === '#' ? (e) => e.preventDefault() : undefined}
+                    className="inline-flex items-center justify-center rounded-full bg-[#0f1219] px-5 py-2.5 text-sm font-semibold tracking-wide text-white shadow-lg shadow-[#0f1219]/20 transition-colors hover:bg-[#0f1219]/85"
+                  >
+                    {scene05.actionLabel}
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {timeline.length > 0 ? (
-            <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 rounded-2xl border border-[#0f1219]/12 bg-white/70 p-5 shadow-[0_24px_50px_-24px_rgba(0,0,0,0.2)]">
-              {timeline.map((item, idx) => (
-                <div
-                  key={item.id}
-                  className="flex flex-col gap-1 border-b border-[#0f1219]/10 pb-3 last:border-b-0 last:pb-0"
-                  style={{
-                    opacity: clamp01(calcOpacity(localProgress, experienceStart + idx * 0.02, experienceEnd, 0.08) + 0.4),
-                  }}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-black/6 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-[#0f1219]/70">
-                      {item.date}
-                    </span>
-                    <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-[#0f1219]/50">{item.title}</span>
-                  </div>
-                  <div className="text-lg font-semibold text-[#0f1219]">{item.role}</div>
-                  <p className="text-sm text-[#0f1219]/72">{item.description}</p>
-                </div>
-              ))}
+          <div className="grid gap-6 lg:grid-cols-[0.82fr_1.18fr]">
+            <div
+              className="rounded-[22px] border border-black/8 bg-white/78 p-4 shadow-[0_18px_42px_-22px_rgba(0,0,0,0.22)] backdrop-blur-[12px]"
+              style={{
+                opacity: calcOpacity(localProgress, experienceStart - 0.08, experienceEnd, 0.12),
+                transform: `translateY(${(1 - sectionProgress(localProgress, experienceStart - 0.08, experienceEnd)) * 18 - 6}px)`,
+                pointerEvents: localProgress > experienceStart - 0.08 ? 'auto' : 'none',
+              }}
+            >
+              <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#0f1219]/60">
+                {scene05.learningLogosTitle}
+              </p>
+              <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                {companies.map((company, idx) => (
+                  <span
+                    key={company.id}
+                    className="rounded-full border border-[#0f1219]/12 bg-white/80 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-[#0f1219]/70 shadow-sm"
+                    style={{
+                      transform: `translateY(${Math.sin(idx + localProgress * 10) * 6}px)`,
+                      transition: 'transform 0.5s ease',
+                    }}
+                  >
+                    {company.name}
+                  </span>
+                ))}
+              </div>
             </div>
-          ) : null}
+
+            {timeline.length > 0 ? (
+              <div
+                className="rounded-[22px] border border-[#0f1219]/10 bg-white/80 p-5 shadow-[0_20px_44px_-24px_rgba(0,0,0,0.25)] backdrop-blur-[12px]"
+                style={{
+                  opacity: calcOpacity(localProgress, experienceStart, experienceEnd, 0.12),
+                  transform: `translateY(${(1 - sectionProgress(localProgress, experienceStart, experienceEnd)) * 18 - 4}px)`,
+                  pointerEvents: localProgress > experienceStart ? 'auto' : 'none',
+                }}
+              >
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#0f1219]/62">
+                    {scene05.storyTitle}
+                  </p>
+                  <span className="h-[6px] w-20 rounded-full bg-[#0f1219]/10" />
+                </div>
+                <div className="flex flex-col gap-4">
+                  {timeline.map((item, idx) => (
+                    <div
+                      key={item.id}
+                      className="flex flex-col gap-1 border-b border-[#0f1219]/10 pb-3 last:border-b-0 last:pb-0"
+                      style={{
+                        opacity: clamp01(calcOpacity(localProgress, experienceStart + idx * 0.02, experienceEnd, 0.08) + 0.4),
+                      }}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-black/6 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-[#0f1219]/70">
+                          {item.date}
+                        </span>
+                        <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-[#0f1219]/50">
+                          {item.title}
+                        </span>
+                      </div>
+                      <div className="text-lg font-semibold text-[#0f1219]">{item.role}</div>
+                      <p className="text-sm text-[#0f1219]/72">{item.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
