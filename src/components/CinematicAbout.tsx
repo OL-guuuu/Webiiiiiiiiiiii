@@ -72,6 +72,11 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
     [scene05.companyLogos],
   );
 
+  const learningLogos = useMemo(
+    () => scene05.learningLogos.filter((item) => item.visible),
+    [scene05.learningLogos],
+  );
+
   const timeline = useMemo(
     () => siteConfig.journeyTimeline.filter((item) => item.visible),
     [siteConfig.journeyTimeline],
@@ -196,12 +201,12 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
   const isActive = progress > 0.01 && progress <= 1.0;
 
   const heroStart = -0.05;
-  const heroEnd = 0.32;
-  const statementsStart = 0.18;
-  const statementsEnd = 0.58;
-  const skillsStart = 0.32;
-  const skillsEnd = 0.74;
-  const certificationsStart = 0.52;
+  const heroEnd = 0.28;
+  const statementsStart = 0.24;
+  const statementsEnd = 0.52;
+  const skillsStart = 0.48;
+  const skillsEnd = 0.76;
+  const certificationsStart = 0.62;
   const certificationsEnd = 0.94;
   const experienceStart = 0.72;
   const experienceEnd = 1.08;
@@ -358,22 +363,22 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                   </span>
                 </div>
 
-                <div className="relative mt-5 min-h-[170px]">
+                <div className="mt-5 grid gap-4 md:gap-5">
                   {statements.map((statement, index) => {
                     const start = statementsStart + statementsWindow * index;
                     const end = start + statementsWindow;
                     const opacity = calcOpacity(localProgress, start, end, textFade);
                     const transform = renderStatementTransform(localProgress, start, end);
                     const railOffset =
-                      (index - sectionProgress(localProgress, statementsStart, statementsEnd) * statements.length) * 38;
+                      (index - sectionProgress(localProgress, statementsStart, statementsEnd) * statements.length) * 14;
 
                     return (
                       <p
                         key={`${statement}-${index}`}
-                        className="absolute inset-x-0 font-serif text-[1.9rem] leading-[1.16] text-[#0f1219] drop-shadow-md md:text-[2.6rem]"
+                        className="font-serif text-[1.65rem] leading-[1.18] text-[#0f1219] drop-shadow-sm md:text-[2.2rem]"
                         style={{
                           opacity,
-                          transform: `${transform} translateY(${railOffset}px)`,
+                          transform: `${transform} translateY(${railOffset}px) scale(${1 - Math.abs(railOffset) * 0.003})`,
                           pointerEvents: opacity > 0.1 ? 'auto' : 'none',
                           transition: 'transform 0.6s ease, opacity 0.6s ease',
                         }}
@@ -544,20 +549,27 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
               }}
             >
               <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-[#0f1219]/60">
-                {scene05.learningLogosTitle}
+                {scene05.learningLogosTitle || scene05.badge}
               </p>
               <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                {companies.map((company, idx) => (
-                  <span
-                    key={company.id}
-                    className="rounded-full border border-[#0f1219]/12 bg-white/80 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-[#0f1219]/70 shadow-sm"
+                {(learningLogos.length > 0 ? learningLogos : companies).map((item, idx) => (
+                  <a
+                    key={item.id}
+                    href={item.href || '#'}
+                    onClick={(e) => {
+                      if (!item.href || item.href === '#') e.preventDefault();
+                    }}
+                    className="flex items-center gap-2 rounded-full border border-[#0f1219]/12 bg-white/80 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-[#0f1219]/70 shadow-sm transition-transform"
                     style={{
                       transform: `translateY(${Math.sin(idx + localProgress * 10) * 6}px)`,
-                      transition: 'transform 0.5s ease',
+                      pointerEvents: item.href && item.href !== '#' ? 'auto' : 'none',
                     }}
                   >
-                    {company.name}
-                  </span>
+                    {item.logoSrc ? (
+                      <img src={item.logoSrc} alt={item.name} className="h-4 w-4 object-contain" />
+                    ) : null}
+                    <span>{item.name}</span>
+                  </a>
                 ))}
               </div>
             </div>
