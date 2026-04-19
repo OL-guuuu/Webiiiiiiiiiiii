@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import Home from './pages/Home';
-import { SiteConfigProvider } from './context/SiteConfigContext';
+import { SiteConfigProvider, useSiteConfig } from './context/SiteConfigContext';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Articles = lazy(() => import('./pages/Articles'));
@@ -41,6 +41,57 @@ const getRoute = (): AppRoute => {
   return { page: 'home' };
 };
 
+const SiteHeadManager: React.FC = () => {
+  const { siteConfig } = useSiteConfig();
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const settings = siteConfig.siteSettings;
+    const title = settings.windowTitle || settings.siteName;
+    const description = settings.metaDescription;
+
+    document.title = title;
+
+    const setMeta = (name: string, content: string) => {
+      if (!content) return;
+      const existing =
+        document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`) ||
+        document.querySelector<HTMLMetaElement>(`meta[property="${name}"]`);
+      if (existing) {
+        existing.content = content;
+        return;
+      }
+      const meta = document.createElement('meta');
+      meta.name = name;
+      meta.content = content;
+      document.head.appendChild(meta);
+    };
+
+    const setLink = (rel: string, href: string) => {
+      if (!href) return;
+      const existing = document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+      if (existing) {
+        existing.href = href;
+        return;
+      }
+      const link = document.createElement('link');
+      link.rel = rel;
+      link.href = href;
+      document.head.appendChild(link);
+    };
+
+    setMeta('description', description);
+    setMeta('og:title', title);
+    setMeta('og:description', description);
+    setMeta('og:image', settings.ogImageUrl);
+    setLink('icon', settings.faviconUrl);
+    setLink('apple-touch-icon', settings.appIconUrl);
+  }, [siteConfig.siteSettings]);
+
+  return null;
+};
+
 function App() {
   const [route, setRoute] = useState<AppRoute>(() => getRoute());
 
@@ -60,6 +111,7 @@ function App() {
 
   return (
     <SiteConfigProvider>
+      <SiteHeadManager />
       {route.page === 'dashboard' ? (
         <Suspense
           fallback={

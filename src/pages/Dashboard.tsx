@@ -30,6 +30,11 @@ import {
   type SiteScene05LogoItem,
   type SiteScene05Certification,
   type SiteVideoItem,
+  type SiteIdentitySettings,
+  type SiteAnalyticsOverview,
+  type SiteAnalyticsTopItem,
+  type SiteInboxMessage,
+  type SiteMessageStatus,
 } from '../config/siteConfig';
 
 const DASHBOARD_PASSWORD = '00000008';
@@ -53,7 +58,7 @@ type DashboardSectionId =
   | 'animation'
   | 'articlesPage';
 
-type DashboardWorkspace = 'settings' | 'writing';
+type DashboardWorkspace = 'experience' | 'publishing' | 'system' | 'analytics' | 'inbox';
 
 const DASHBOARD_SECTIONS: Array<{ id: DashboardSectionId; label: string; hint: string }> = [
   { id: 'intro', label: 'Intro Window', hint: 'Opening text and intro card styling' },
@@ -82,6 +87,14 @@ const DASHBOARD_SECTION_GROUPS: Array<{ id: string; label: string; sectionIds: D
     label: 'System Layer',
     sectionIds: ['visibility', 'sequence', 'designSystem', 'animation'],
   },
+];
+
+const DASHBOARD_WORKSPACES: Array<{ id: DashboardWorkspace; label: string; hint: string }> = [
+  { id: 'experience', label: 'Experience Hub', hint: 'All site sections, scenes, and design system' },
+  { id: 'publishing', label: 'Publishing', hint: 'Articles, videos, and release workflow' },
+  { id: 'system', label: 'System Settings', hint: 'Identity, domains, APIs, and integrations' },
+  { id: 'analytics', label: 'Analytics', hint: 'Traffic, conversion, and source intelligence' },
+  { id: 'inbox', label: 'Inbox', hint: 'Leads, contact messages, and follow-ups' },
 ];
 
 const formatVariantLabel = (variant: string) => {
@@ -525,8 +538,8 @@ export const Dashboard: React.FC = () => {
 
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
-  const [activeWorkspace, setActiveWorkspace] = useState<DashboardWorkspace>('settings');
-  const [activeSection, setActiveSection] = useState<DashboardSectionId>('sequence');
+  const [activeWorkspace, setActiveWorkspace] = useState<DashboardWorkspace>('experience');
+  const [activeSection, setActiveSection] = useState<DashboardSectionId>('intro');
   const [writingPanel, setWritingPanel] = useState<'articles' | 'videos'>('articles');
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadError, setUploadError] = useState('');
@@ -760,6 +773,149 @@ export const Dashboard: React.FC = () => {
             },
           },
         },
+      },
+    }));
+  };
+
+  const updateSiteSettings = <K extends keyof SiteIdentitySettings>(
+    key: K,
+    value: SiteIdentitySettings[K],
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      siteSettings: {
+        ...prev.siteSettings,
+        [key]: value,
+      },
+    }));
+  };
+
+  const updateSiteIntegration = <K extends keyof SiteIdentitySettings['integrations']>(
+    key: K,
+    value: SiteIdentitySettings['integrations'][K],
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      siteSettings: {
+        ...prev.siteSettings,
+        integrations: {
+          ...prev.siteSettings.integrations,
+          [key]: value,
+        },
+      },
+    }));
+  };
+
+  const updateAnalyticsValue = <K extends keyof SiteAnalyticsOverview>(
+    key: K,
+    value: SiteAnalyticsOverview[K],
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      analytics: {
+        ...prev.analytics,
+        [key]: value,
+      },
+    }));
+  };
+
+  const updateAnalyticsItem = (
+    listKey: 'topPages' | 'topSources',
+    itemId: string,
+    patch: Partial<SiteAnalyticsTopItem>,
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      analytics: {
+        ...prev.analytics,
+        [listKey]: prev.analytics[listKey].map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
+      },
+    }));
+  };
+
+  const addAnalyticsItem = (listKey: 'topPages' | 'topSources') => {
+    const now = Date.now();
+    const seed: SiteAnalyticsTopItem = {
+      id: `${listKey}-${now}`,
+      label: listKey === 'topPages' ? 'New page' : 'New source',
+      metric: 0,
+      trend: 0,
+    };
+    updateConfig((prev) => ({
+      ...prev,
+      analytics: {
+        ...prev.analytics,
+        [listKey]: [seed, ...prev.analytics[listKey]],
+      },
+    }));
+  };
+
+  const updateAnalyticsGoal = (goalId: string, patch: Partial<SiteConfig['analytics']['goals'][number]>) => {
+    updateConfig((prev) => ({
+      ...prev,
+      analytics: {
+        ...prev.analytics,
+        goals: prev.analytics.goals.map((goal) => (goal.id === goalId ? { ...goal, ...patch } : goal)),
+      },
+    }));
+  };
+
+  const addAnalyticsGoal = () => {
+    const now = Date.now();
+    updateConfig((prev) => ({
+      ...prev,
+      analytics: {
+        ...prev.analytics,
+        goals: [
+          {
+            id: `goal-${now}`,
+            name: 'New Goal',
+            completionRate: 0,
+            weeklyChange: 0,
+          },
+          ...prev.analytics.goals,
+        ],
+      },
+    }));
+  };
+
+  const updateInboxMessage = (
+    messageId: string,
+    patch: Partial<Omit<SiteInboxMessage, 'id'>>,
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      inbox: {
+        ...prev.inbox,
+        messages: prev.inbox.messages.map((message) =>
+          message.id === messageId ? { ...message, ...patch } : message,
+        ),
+      },
+    }));
+  };
+
+  const addInboxMessage = () => {
+    const now = Date.now();
+    const receivedAt = new Date().toISOString();
+    updateConfig((prev) => ({
+      ...prev,
+      inbox: {
+        ...prev.inbox,
+        messages: [
+          {
+            id: `msg-${now}`,
+            name: 'New lead',
+            company: 'Company name',
+            email: 'email@example.com',
+            topic: 'Project inquiry',
+            message: 'Add details here.',
+            status: 'new',
+            receivedAt,
+            source: 'Site form',
+            priority: 'medium',
+          },
+          ...prev.inbox.messages,
+        ],
       },
     }));
   };
@@ -1025,6 +1181,11 @@ export const Dashboard: React.FC = () => {
       publishedArticles: siteConfig.articles.filter((item) => item.status === 'published').length,
       videos: siteConfig.videos.length,
       publishedVideos: siteConfig.videos.filter((item) => item.status === 'published').length,
+      messages: siteConfig.inbox.messages.length,
+      newMessages: siteConfig.inbox.messages.filter((item) => item.status === 'new').length,
+      openThreads: siteConfig.inbox.messages.filter((item) => item.status === 'open').length,
+      monthlyVisitors: siteConfig.analytics.monthlyVisitors,
+      conversionRate: siteConfig.analytics.conversionRate,
     };
   }, [siteConfig]);
 
@@ -5273,6 +5434,624 @@ export const Dashboard: React.FC = () => {
     );
   };
 
+  const renderFeedback = () => (
+    <>
+      {uploadError ? (
+        <div className="rounded-[12px] border border-red-300/35 bg-red-900/15 px-4 py-3 text-sm text-red-200">
+          {uploadError}
+        </div>
+      ) : null}
+      {uploadMessage ? (
+        <div className="rounded-[12px] border border-emerald-300/35 bg-emerald-900/15 px-4 py-3 text-sm text-emerald-200">
+          {uploadMessage}
+        </div>
+      ) : null}
+    </>
+  );
+
+  const renderSystemSettings = () => {
+    return (
+      <section className="space-y-4">
+        {renderFeedback()}
+
+        <Card title="Identity & Meta" subtitle="Browser title, domain, and meta description">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input
+              label="Site name"
+              value={siteConfig.siteSettings.siteName}
+              onChange={(next) => updateSiteSettings('siteName', next)}
+            />
+            <Input
+              label="Window title"
+              value={siteConfig.siteSettings.windowTitle}
+              onChange={(next) => updateSiteSettings('windowTitle', next)}
+            />
+            <Input
+              label="Primary domain"
+              value={siteConfig.siteSettings.primaryDomain}
+              onChange={(next) => updateSiteSettings('primaryDomain', next)}
+            />
+            <Input
+              label="Contact email"
+              value={siteConfig.siteSettings.contactEmail}
+              onChange={(next) => updateSiteSettings('contactEmail', next)}
+            />
+            <Input
+              label="API base URL"
+              value={siteConfig.siteSettings.apiBaseUrl}
+              onChange={(next) => updateSiteSettings('apiBaseUrl', next)}
+            />
+            <Input
+              label="Google Analytics property"
+              value={siteConfig.siteSettings.googleAnalyticsProperty}
+              onChange={(next) => updateSiteSettings('googleAnalyticsProperty', next)}
+            />
+          </div>
+
+          <Textarea
+            label="Meta description"
+            value={siteConfig.siteSettings.metaDescription}
+            rows={3}
+            onChange={(next) => updateSiteSettings('metaDescription', next)}
+          />
+        </Card>
+
+        <Card title="Brand & Sharing" subtitle="Favicons and preview art shown in tabs and social cards">
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input
+              label="Favicon URL"
+              value={siteConfig.siteSettings.faviconUrl}
+              onChange={(next) => updateSiteSettings('faviconUrl', next)}
+            />
+            <Input
+              label="App icon URL"
+              value={siteConfig.siteSettings.appIconUrl}
+              onChange={(next) => updateSiteSettings('appIconUrl', next)}
+            />
+            <Input
+              label="OG image URL"
+              value={siteConfig.siteSettings.ogImageUrl}
+              onChange={(next) => updateSiteSettings('ogImageUrl', next)}
+            />
+          </div>
+          <p className="text-xs text-white/60">
+            These values feed the live document head, updating the browser tab, social previews, and shared links.
+          </p>
+        </Card>
+
+        <Card title="Integrations" subtitle="Connection state for analytics, custom domain, and API gateway">
+          <div className="grid gap-3 md:grid-cols-3">
+            <Toggle
+              label="Analytics Connected"
+              checked={siteConfig.siteSettings.integrations.analyticsConnected}
+              onChange={(next) => updateSiteIntegration('analyticsConnected', next)}
+            />
+            <Toggle
+              label="Domain Verified"
+              checked={siteConfig.siteSettings.integrations.domainVerified}
+              onChange={(next) => updateSiteIntegration('domainVerified', next)}
+            />
+            <Toggle
+              label="API Connected"
+              checked={siteConfig.siteSettings.integrations.apiConnected}
+              onChange={(next) => updateSiteIntegration('apiConnected', next)}
+            />
+          </div>
+          <p className="text-xs text-white/60">
+            Keep these toggles aligned with your real integrations so the dashboard mirrors production status.
+          </p>
+        </Card>
+      </section>
+    );
+  };
+
+  const renderAnalyticsWorkspace = () => {
+    return (
+      <section className="space-y-4">
+        {renderFeedback()}
+
+        <Card title="Traffic Overview" subtitle="Update the high-level signals pulled from analytics">
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input
+              label="Monthly visitors"
+              type="number"
+              min={0}
+              value={siteConfig.analytics.monthlyVisitors}
+              onChange={(next) =>
+                updateAnalyticsValue('monthlyVisitors', toSafeNumber(next, siteConfig.analytics.monthlyVisitors))
+              }
+            />
+            <Input
+              label="Conversions"
+              type="number"
+              min={0}
+              value={siteConfig.analytics.conversions}
+              onChange={(next) =>
+                updateAnalyticsValue('conversions', toSafeNumber(next, siteConfig.analytics.conversions))
+              }
+            />
+            <Input
+              label="Conversion rate (%)"
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              value={siteConfig.analytics.conversionRate}
+              onChange={(next) =>
+                updateAnalyticsValue(
+                  'conversionRate',
+                  toSafeNumberInRange(next, siteConfig.analytics.conversionRate, 0, 100),
+                )
+              }
+            />
+            <Input
+              label="Average session (seconds)"
+              type="number"
+              min={0}
+              value={siteConfig.analytics.avgSessionSeconds}
+              onChange={(next) =>
+                updateAnalyticsValue(
+                  'avgSessionSeconds',
+                  toSafeNumber(next, siteConfig.analytics.avgSessionSeconds),
+                )
+              }
+            />
+            <Input
+              label="Bounce rate (%)"
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              value={siteConfig.analytics.bounceRate}
+              onChange={(next) =>
+                updateAnalyticsValue(
+                  'bounceRate',
+                  toSafeNumberInRange(next, siteConfig.analytics.bounceRate, 0, 100),
+                )
+              }
+            />
+            <Input
+              label="Last updated"
+              value={siteConfig.analytics.lastUpdated}
+              onChange={(next) => updateAnalyticsValue('lastUpdated', next)}
+            />
+          </div>
+        </Card>
+
+        <Card
+          title="Top Pages"
+          subtitle="Which pages bring the most engaged sessions and conversions"
+          className="space-y-3"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-white/62">Total pages tracked: {siteConfig.analytics.topPages.length}</p>
+            <button
+              type="button"
+              onClick={() => addAnalyticsItem('topPages')}
+              className="rounded-[8px] border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
+            >
+              Add Page
+            </button>
+          </div>
+
+          <div className="grid gap-3">
+            {siteConfig.analytics.topPages.map((page) => (
+              <div key={page.id} className={listItemClass}>
+                <div className="grid gap-2 md:grid-cols-3">
+                  <Input
+                    label="Page label"
+                    value={page.label}
+                    onChange={(next) => updateAnalyticsItem('topPages', page.id, { label: next })}
+                  />
+                  <Input
+                    label="Sessions"
+                    type="number"
+                    min={0}
+                    value={page.metric}
+                    onChange={(next) =>
+                      updateAnalyticsItem('topPages', page.id, {
+                        metric: toSafeNumber(next, page.metric),
+                      })
+                    }
+                  />
+                  <Input
+                    label="Trend (%)"
+                    type="number"
+                    step={0.1}
+                    value={page.trend}
+                    onChange={(next) =>
+                      updateAnalyticsItem('topPages', page.id, {
+                        trend: toSafeNumber(next, page.trend),
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateConfig((prev) => ({
+                        ...prev,
+                        analytics: {
+                          ...prev.analytics,
+                          topPages: prev.analytics.topPages.filter((item) => item.id !== page.id),
+                        },
+                      }))
+                    }
+                    className="rounded-[8px] border border-red-400/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-red-200 hover:bg-red-500/10"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card
+          title="Top Sources"
+          subtitle="Acquisition channels ranked by traffic quality"
+          className="space-y-3"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-white/62">Sources tracked: {siteConfig.analytics.topSources.length}</p>
+            <button
+              type="button"
+              onClick={() => addAnalyticsItem('topSources')}
+              className="rounded-[8px] border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
+            >
+              Add Source
+            </button>
+          </div>
+
+          <div className="grid gap-3">
+            {siteConfig.analytics.topSources.map((source) => (
+              <div key={source.id} className={listItemClass}>
+                <div className="grid gap-2 md:grid-cols-3">
+                  <Input
+                    label="Source"
+                    value={source.label}
+                    onChange={(next) => updateAnalyticsItem('topSources', source.id, { label: next })}
+                  />
+                  <Input
+                    label="Sessions"
+                    type="number"
+                    min={0}
+                    value={source.metric}
+                    onChange={(next) =>
+                      updateAnalyticsItem('topSources', source.id, {
+                        metric: toSafeNumber(next, source.metric),
+                      })
+                    }
+                  />
+                  <Input
+                    label="Trend (%)"
+                    type="number"
+                    step={0.1}
+                    value={source.trend}
+                    onChange={(next) =>
+                      updateAnalyticsItem('topSources', source.id, {
+                        trend: toSafeNumber(next, source.trend),
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateConfig((prev) => ({
+                        ...prev,
+                        analytics: {
+                          ...prev.analytics,
+                          topSources: prev.analytics.topSources.filter((item) => item.id !== source.id),
+                        },
+                      }))
+                    }
+                    className="rounded-[8px] border border-red-400/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-red-200 hover:bg-red-500/10"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="Goals & Conversions" subtitle="Track the outcomes that matter">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-white/62">Goals: {siteConfig.analytics.goals.length}</p>
+            <button
+              type="button"
+              onClick={addAnalyticsGoal}
+              className="rounded-[8px] border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
+            >
+              Add Goal
+            </button>
+          </div>
+
+          <div className="grid gap-3">
+            {siteConfig.analytics.goals.map((goal) => (
+              <div key={goal.id} className={listItemClass}>
+                <div className="grid gap-2 md:grid-cols-3">
+                  <Input
+                    label="Goal name"
+                    value={goal.name}
+                    onChange={(next) => updateAnalyticsGoal(goal.id, { name: next })}
+                  />
+                  <Input
+                    label="Completion rate (%)"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    value={goal.completionRate}
+                    onChange={(next) =>
+                      updateAnalyticsGoal(goal.id, {
+                        completionRate: toSafeNumberInRange(next, goal.completionRate, 0, 100),
+                      })
+                    }
+                  />
+                  <Input
+                    label="Weekly change (%)"
+                    type="number"
+                    step={0.1}
+                    value={goal.weeklyChange}
+                    onChange={(next) =>
+                      updateAnalyticsGoal(goal.id, {
+                        weeklyChange: toSafeNumber(next, goal.weeklyChange),
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateConfig((prev) => ({
+                        ...prev,
+                        analytics: {
+                          ...prev.analytics,
+                          goals: prev.analytics.goals.filter((item) => item.id !== goal.id),
+                        },
+                      }))
+                    }
+                    className="rounded-[8px] border border-red-400/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-red-200 hover:bg-red-500/10"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </section>
+    );
+  };
+
+  const renderInboxWorkspace = () => {
+    const statusOptions: Array<{ value: SiteMessageStatus; label: string }> = [
+      { value: 'new', label: 'New' },
+      { value: 'open', label: 'In Progress' },
+      { value: 'responded', label: 'Responded' },
+      { value: 'closed', label: 'Closed' },
+    ];
+
+    const priorityOptions: Array<{ value: SiteInboxMessage['priority']; label: string }> = [
+      { value: 'high', label: 'High' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'low', label: 'Low' },
+    ];
+
+    return (
+      <section className="space-y-4">
+        {renderFeedback()}
+
+        <Card title="Inbox Overview" subtitle="Messages sent from the site and replies handled here">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/80">
+              New: {stats.newMessages}
+            </span>
+            <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/80">
+              Open: {stats.openThreads}
+            </span>
+            <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/80">
+              Total: {stats.messages}
+            </span>
+            <button
+              type="button"
+              onClick={addInboxMessage}
+              className="ml-auto rounded-[8px] border border-white/22 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
+            >
+              Add Message
+            </button>
+          </div>
+        </Card>
+
+        {siteConfig.inbox.messages.map((message) => (
+          <div key={message.id} className={listItemClass}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">
+                {message.topic}
+              </p>
+              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/75">
+                Received: {new Date(message.receivedAt).toLocaleString()}
+              </span>
+            </div>
+
+            <div className="grid gap-2 md:grid-cols-2">
+              <Input
+                label="Name"
+                value={message.name}
+                onChange={(next) => updateInboxMessage(message.id, { name: next })}
+              />
+              <Input
+                label="Company"
+                value={message.company}
+                onChange={(next) => updateInboxMessage(message.id, { company: next })}
+              />
+            </div>
+
+            <div className="grid gap-2 md:grid-cols-3">
+              <Input
+                label="Email"
+                value={message.email}
+                onChange={(next) => updateInboxMessage(message.id, { email: next })}
+              />
+              <Input
+                label="Topic"
+                value={message.topic}
+                onChange={(next) => updateInboxMessage(message.id, { topic: next })}
+              />
+              <Input
+                label="Source"
+                value={message.source}
+                onChange={(next) => updateInboxMessage(message.id, { source: next })}
+              />
+            </div>
+
+            <Textarea
+              label="Message"
+              rows={4}
+              value={message.message}
+              onChange={(next) => updateInboxMessage(message.id, { message: next })}
+            />
+
+            <div className="grid gap-2 md:grid-cols-3">
+              <SelectInput
+                label="Status"
+                value={message.status}
+                options={statusOptions}
+                onChange={(next) =>
+                  updateInboxMessage(message.id, { status: next as SiteInboxMessage['status'] })
+                }
+              />
+              <SelectInput
+                label="Priority"
+                value={message.priority}
+                options={priorityOptions}
+                onChange={(next) =>
+                  updateInboxMessage(message.id, { priority: next as SiteInboxMessage['priority'] })
+                }
+              />
+              <button
+                type="button"
+                onClick={() => updateInboxMessage(message.id, { status: 'responded' })}
+                className="mt-6 rounded-[8px] border border-white/22 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
+              >
+                Mark Responded
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => updateInboxMessage(message.id, { status: 'closed' })}
+                className="rounded-[8px] border border-emerald-400/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-emerald-100 hover:bg-emerald-500/10"
+              >
+                Close Thread
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  updateConfig((prev) => ({
+                    ...prev,
+                    inbox: {
+                      ...prev.inbox,
+                      messages: prev.inbox.messages.filter((item) => item.id !== message.id),
+                    },
+                  }))
+                }
+                className="rounded-[8px] border border-red-400/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-red-200 hover:bg-red-500/10"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+      </section>
+    );
+  };
+
+  const renderExperienceWorkspace = () => {
+    return (
+      <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="xl:sticky xl:top-[122px] xl:self-start">
+          <div className="rounded-[16px] border border-white/10 bg-[rgba(10,10,13,0.75)] p-3 backdrop-blur-xl">
+            <p className="px-1 font-mono text-[10px] uppercase tracking-[0.16em] text-white/62">
+              Experience Sections
+            </p>
+            <div className="mt-3 space-y-3">
+              {DASHBOARD_SECTION_GROUPS.map((group) => (
+                <div key={group.id} className="space-y-2">
+                  <p className="px-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/48">
+                    {group.label}
+                  </p>
+
+                  {group.sectionIds.map((sectionId) => {
+                    const section = DASHBOARD_SECTIONS.find((entry) => entry.id === sectionId);
+                    if (!section) return null;
+
+                    return (
+                      <SectionButton
+                        key={section.id}
+                        label={section.label}
+                        hint={section.hint}
+                        isActive={activeSection === section.id}
+                        onClick={() => {
+                          setActiveSection(section.id);
+                          clearUploadFeedback();
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 rounded-[12px] border border-white/10 bg-black/30 px-3 py-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/75">Current Section</p>
+              <p className="mt-1 text-sm text-white/90">{activeSectionInfo.label}</p>
+              <p className="mt-1 text-xs text-white/58">{activeSectionInfo.hint}</p>
+            </div>
+          </div>
+        </aside>
+
+        <section className="min-w-0 space-y-4">
+          {renderFeedback()}
+          {renderSectionContent()}
+        </section>
+      </div>
+    );
+  };
+
+  const renderPublishingWorkspace = () => (
+    <section className="min-w-0 space-y-4">
+      {renderFeedback()}
+      {renderWritingStudio()}
+    </section>
+  );
+
+  const renderWorkspaceContent = () => {
+    switch (activeWorkspace) {
+      case 'experience':
+        return renderExperienceWorkspace();
+      case 'publishing':
+        return renderPublishingWorkspace();
+      case 'system':
+        return renderSystemSettings();
+      case 'analytics':
+        return renderAnalyticsWorkspace();
+      case 'inbox':
+        return renderInboxWorkspace();
+      default:
+        return null;
+    }
+  };
+
   if (!isUnlocked) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#09090b] px-4 text-white">
@@ -5310,186 +6089,138 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(76,114,255,0.12),transparent_42%),radial-gradient(circle_at_80%_10%,rgba(110,255,218,0.08),transparent_35%),#060608] text-white">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[rgba(8,8,10,0.82)] backdrop-blur-xl">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_12%_16%,rgba(94,178,255,0.2),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(255,118,189,0.16),transparent_26%),linear-gradient(145deg,#04060c_0%,#070a12_50%,#0c0f16_100%)] text-white">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[rgba(5,7,12,0.86)] backdrop-blur-xl">
         <div
-          className="mx-auto flex w-full flex-col gap-4 px-4 py-4 md:px-6 xl:flex-row xl:items-center xl:justify-between"
+          className="mx-auto w-full px-4 py-5 md:px-6"
           style={{ maxWidth: 'var(--ds-layout-max-width)' }}
         >
-          <div>
-            <h1 className="font-mono text-[11px] uppercase tracking-[0.24em] text-white/95">Cinematic Site Dashboard</h1>
-            <p className="mt-1 text-sm text-white/58">A cleaner control center for content, design system, and motion.</p>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
+            <div className="space-y-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/70">
+                Product Control Room
+              </p>
+              <h1 className="text-2xl font-semibold text-white">{siteConfig.siteSettings.siteName} Dashboard</h1>
+              <p className="text-sm text-white/65">
+                Redrawn with clearer swimlanes: Experience, Publishing, System Settings, Analytics, and Inbox in one place.
+              </p>
 
-            <div className="mt-3 grid max-w-[440px] gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {DASHBOARD_WORKSPACES.map((workspace) => (
+                  <button
+                    key={workspace.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveWorkspace(workspace.id);
+                      clearUploadFeedback();
+                    }}
+                    className={`rounded-[11px] border px-3 py-3 text-left transition-all ${
+                      activeWorkspace === workspace.id
+                        ? 'border-white/40 bg-white/15 text-white shadow-[0_12px_30px_rgba(0,0,0,0.24)]'
+                        : 'border-white/14 bg-white/5 text-white/75 hover:border-white/30 hover:bg-white/10'
+                    }`}
+                  >
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em]">{workspace.label}</p>
+                    <p className="mt-1 text-[12px] text-white/62">{workspace.hint}</p>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
+                  Projects: {stats.projects}
+                </span>
+                <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
+                  Articles: {stats.publishedArticles}/{stats.articles}
+                </span>
+                <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
+                  Inbox: {stats.newMessages} new / {stats.messages} total
+                </span>
+                <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
+                  Conversion: {stats.conversionRate}%
+                </span>
+                <span
+                  className={`rounded-[999px] border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ${
+                    hasUnsavedChanges
+                      ? 'border-amber-300/35 bg-amber-500/10 text-amber-200'
+                      : 'border-emerald-300/35 bg-emerald-500/10 text-emerald-200'
+                  }`}
+                >
+                  {hasUnsavedChanges ? 'Unsaved changes' : 'All changes saved'}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
-                onClick={() => setActiveWorkspace('settings')}
-                className={`rounded-[11px] border px-3 py-2 text-left transition-all ${
-                  activeWorkspace === 'settings'
-                    ? 'border-white/35 bg-white/15 text-white'
-                    : 'border-white/14 bg-black/25 text-white/72 hover:bg-white/10'
+                onClick={handleSaveChanges}
+                className={`${getButtonClass('button-1', 'dark', 'md')} ${
+                  hasUnsavedChanges
+                    ? 'border-amber-300/45 text-amber-100 shadow-[0_10px_24px_rgba(245,158,11,0.16)]'
+                    : 'opacity-85 hover:opacity-100'
                 }`}
               >
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em]">Site Settings</p>
-                <p className="mt-1 text-[12px] text-white/58">Design, scenes, motion, and visibility</p>
+                Save Changes
+              </button>
+              <button type="button" onClick={handleOpenSite} className={getButtonClass('button-2', 'dark', 'md')}>
+                Open Site
               </button>
               <button
                 type="button"
-              onClick={() => setActiveWorkspace('writing')}
-              className={`rounded-[11px] border px-3 py-2 text-left transition-all ${
-                activeWorkspace === 'writing'
-                  ? 'border-white/35 bg-white/15 text-white'
-                  : 'border-white/14 bg-black/25 text-white/72 hover:bg-white/10'
-              }`}
-            >
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em]">Writing Studio</p>
-              <p className="mt-1 text-[12px] text-white/58">Write and publish articles and videos</p>
-            </button>
-          </div>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
-                Projects: {stats.projects}
-              </span>
-              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
-                Testimonials: {stats.testimonials}
-              </span>
-              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
-                Nav items: {stats.navItems}
-              </span>
-              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
-                Articles: {stats.articles}
-              </span>
-              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
-                Videos: {stats.videos}
-              </span>
-              <span
-                className={`rounded-[999px] border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ${
-                  hasUnsavedChanges
-                    ? 'border-amber-300/35 bg-amber-500/10 text-amber-200'
-                    : 'border-emerald-300/35 bg-emerald-500/10 text-emerald-200'
-                }`}
+                onClick={() => {
+                  resetSiteConfig();
+                  clearUploadFeedback();
+                  setHasUnsavedChanges(false);
+                }}
+                className={getButtonClass('button-3', 'dark', 'md')}
               >
-                {hasUnsavedChanges ? 'Unsaved changes' : 'All changes saved'}
-              </span>
+                Reset Defaults
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className={`${getButtonClass('button-2', 'dark', 'md')} border-red-300/45 text-red-200 hover:bg-red-500/10`}
+              >
+                Logout
+              </button>
             </div>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <button
-              type="button"
-              onClick={handleSaveChanges}
-              className={`${getButtonClass('button-1', 'dark', 'sm')} ${
-                hasUnsavedChanges
-                  ? 'border-amber-300/45 text-amber-100 shadow-[0_10px_24px_rgba(245,158,11,0.16)]'
-                  : 'opacity-85 hover:opacity-100'
-              }`}
-            >
-              Save Changes
-            </button>
-            <button type="button" onClick={handleOpenSite} className={getButtonClass('button-2', 'dark', 'sm')}>
-              Open Site
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                resetSiteConfig();
-                clearUploadFeedback();
-                setHasUnsavedChanges(false);
-              }}
-              className={getButtonClass('button-3', 'dark', 'sm')}
-            >
-              Reset Defaults
-            </button>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className={`${getButtonClass('button-2', 'dark', 'sm')} border-red-300/45 text-red-200 hover:bg-red-500/10`}
-            >
-              Logout
-            </button>
           </div>
         </div>
       </header>
 
       <div
-        className="mx-auto w-full px-4 pb-8 pt-5 md:px-6"
+        className="mx-auto w-full px-4 pb-10 pt-6 md:px-6"
         style={{ maxWidth: 'var(--ds-layout-max-width)' }}
       >
-        {activeWorkspace === 'settings' ? (
-          <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-            <aside className="xl:sticky xl:top-[122px] xl:self-start">
-              <div className="rounded-[16px] border border-white/10 bg-[rgba(10,10,13,0.75)] p-3 backdrop-blur-xl">
-                <p className="px-1 font-mono text-[10px] uppercase tracking-[0.16em] text-white/62">
-                  Dashboard Sections
-                </p>
-                <div className="mt-3 space-y-3">
-                  {DASHBOARD_SECTION_GROUPS.map((group) => (
-                    <div key={group.id} className="space-y-2">
-                      <p className="px-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/48">
-                        {group.label}
-                      </p>
-
-                      {group.sectionIds.map((sectionId) => {
-                        const section = DASHBOARD_SECTIONS.find((entry) => entry.id === sectionId);
-                        if (!section) return null;
-
-                        return (
-                          <SectionButton
-                            key={section.id}
-                            label={section.label}
-                            hint={section.hint}
-                            isActive={activeSection === section.id}
-                            onClick={() => {
-                              setActiveSection(section.id);
-                              clearUploadFeedback();
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-3 rounded-[12px] border border-white/10 bg-black/30 px-3 py-3">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/75">Current Section</p>
-                  <p className="mt-1 text-sm text-white/90">{activeSectionInfo.label}</p>
-                  <p className="mt-1 text-xs text-white/58">{activeSectionInfo.hint}</p>
-                </div>
-              </div>
-            </aside>
-
-            <section className="min-w-0 space-y-4">
-              {uploadError ? (
-                <div className="rounded-[12px] border border-red-300/35 bg-red-900/15 px-4 py-3 text-sm text-red-200">
-                  {uploadError}
-                </div>
-              ) : null}
-              {uploadMessage ? (
-                <div className="rounded-[12px] border border-emerald-300/35 bg-emerald-900/15 px-4 py-3 text-sm text-emerald-200">
-                  {uploadMessage}
-                </div>
-              ) : null}
-
-              {renderSectionContent()}
-            </section>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[14px] border border-white/10 bg-white/5 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-lg">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Content</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{stats.projects} projects</p>
+            <p className="text-sm text-white/60">+ {stats.testimonials} testimonials live</p>
           </div>
-        ) : (
-          <section className="min-w-0 space-y-4">
-            {uploadError ? (
-              <div className="rounded-[12px] border border-red-300/35 bg-red-900/15 px-4 py-3 text-sm text-red-200">
-                {uploadError}
-              </div>
-            ) : null}
-            {uploadMessage ? (
-              <div className="rounded-[12px] border border-emerald-300/35 bg-emerald-900/15 px-4 py-3 text-sm text-emerald-200">
-                {uploadMessage}
-              </div>
-            ) : null}
+          <div className="rounded-[14px] border border-white/10 bg-white/5 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-lg">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Publishing</p>
+            <p className="mt-2 text-2xl font-semibold text-white">
+              {stats.publishedArticles}/{stats.articles} articles
+            </p>
+            <p className="text-sm text-white/60">{stats.publishedVideos} videos paired</p>
+          </div>
+          <div className="rounded-[14px] border border-white/10 bg-white/5 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-lg">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Analytics</p>
+            <p className="mt-2 text-2xl font-semibold text-white">
+              {siteConfig.analytics.monthlyVisitors.toLocaleString()} visits
+            </p>
+            <p className="text-sm text-white/60">Conversion rate {stats.conversionRate}%</p>
+          </div>
+          <div className="rounded-[14px] border border-white/10 bg-white/5 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)] backdrop-blur-lg">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Inbox</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{stats.newMessages} new</p>
+            <p className="text-sm text-white/60">{stats.messages} total threads</p>
+          </div>
+        </div>
 
-            {renderWritingStudio()}
-          </section>
-        )}
+        <div className="mt-6">{renderWorkspaceContent()}</div>
       </div>
     </main>
   );

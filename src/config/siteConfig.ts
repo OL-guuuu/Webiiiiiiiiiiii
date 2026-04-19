@@ -358,7 +358,67 @@ export interface SiteMotionSystem {
   hoverLiftPx: number;
 }
 
+export type SiteMessageStatus = 'new' | 'open' | 'responded' | 'closed';
+
+export interface SiteInboxMessage {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  topic: string;
+  message: string;
+  status: SiteMessageStatus;
+  receivedAt: string;
+  source: string;
+  priority: 'low' | 'medium' | 'high';
+}
+
+export interface SiteAnalyticsTopItem {
+  id: string;
+  label: string;
+  metric: number;
+  trend: number;
+}
+
+export interface SiteAnalyticsGoal {
+  id: string;
+  name: string;
+  completionRate: number;
+  weeklyChange: number;
+}
+
+export interface SiteAnalyticsOverview {
+  monthlyVisitors: number;
+  avgSessionSeconds: number;
+  bounceRate: number;
+  conversions: number;
+  conversionRate: number;
+  topPages: SiteAnalyticsTopItem[];
+  topSources: SiteAnalyticsTopItem[];
+  goals: SiteAnalyticsGoal[];
+  lastUpdated: string;
+}
+
+export interface SiteIdentitySettings {
+  siteName: string;
+  windowTitle: string;
+  metaDescription: string;
+  primaryDomain: string;
+  contactEmail: string;
+  apiBaseUrl: string;
+  googleAnalyticsProperty: string;
+  faviconUrl: string;
+  appIconUrl: string;
+  ogImageUrl: string;
+  integrations: {
+    analyticsConnected: boolean;
+    apiConnected: boolean;
+    domainVerified: boolean;
+  };
+}
+
 export interface SiteConfig {
+  siteSettings: SiteIdentitySettings;
   introText: string;
   featured: {
     titleLine1: string;
@@ -517,11 +577,33 @@ export interface SiteConfig {
   cinematicSequence: SiteCinematicSequenceConfig;
   globalFrame: SiteGlobalFrameConfig;
   visibility: SiteVisibilityConfig;
+  analytics: SiteAnalyticsOverview;
+  inbox: {
+    messages: SiteInboxMessage[];
+  };
 }
 
 export const SITE_CONFIG_STORAGE_KEY = 'portfolio.site-config.v1';
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
+  siteSettings: {
+    siteName: 'Cinematic Studio',
+    windowTitle: 'Cinematic Dashboard',
+    metaDescription:
+      'Control every scene, article, and integration of the cinematic portfolio from one dashboard.',
+    primaryDomain: 'cinematic.example.com',
+    contactEmail: 'hello@example.com',
+    apiBaseUrl: 'https://api.example.com',
+    googleAnalyticsProperty: 'G-XYZ123456',
+    faviconUrl: 'https://fav.farm/AI',
+    appIconUrl: 'https://fav.farm/DS',
+    ogImageUrl: '/frames/scene-03-screen-entry/ezgif-frame-001.jpg',
+    integrations: {
+      analyticsConnected: true,
+      apiConnected: true,
+      domainVerified: false,
+    },
+  },
   introText:
     'I design thoughtful digital products and cinematic user experiences that connect user needs with business success through AI.',
   featured: {
@@ -1185,6 +1267,71 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     footerNavLinks: true,
     footerOffice: true,
   },
+  analytics: {
+    monthlyVisitors: 12840,
+    avgSessionSeconds: 186,
+    bounceRate: 32,
+    conversions: 428,
+    conversionRate: 4.6,
+    topPages: [
+      { id: 'page-home', label: 'Home', metric: 6421, trend: 7.2 },
+      { id: 'page-about', label: 'About', metric: 3112, trend: 5.1 },
+      { id: 'page-projects', label: 'Projects', metric: 2410, trend: 3.4 },
+      { id: 'page-articles', label: 'Articles', metric: 1987, trend: 6.8 },
+    ],
+    topSources: [
+      { id: 'source-search', label: 'Organic Search', metric: 5120, trend: 9.2 },
+      { id: 'source-referrals', label: 'Referrals', metric: 2860, trend: 4.1 },
+      { id: 'source-social', label: 'Social', metric: 1680, trend: 2.4 },
+    ],
+    goals: [
+      { id: 'goal-brief', name: 'Project Briefs', completionRate: 68, weeklyChange: 6 },
+      { id: 'goal-demo', name: 'Demo Requests', completionRate: 42, weeklyChange: 4 },
+      { id: 'goal-newsletter', name: 'Newsletter Signups', completionRate: 58, weeklyChange: 2 },
+    ],
+    lastUpdated: '2026-04-18T08:00:00Z',
+  },
+  inbox: {
+    messages: [
+      {
+        id: 'msg-1',
+        name: 'Lina Haddad',
+        company: 'Northstar Labs',
+        email: 'lina@northstar.ai',
+        topic: 'Product redesign + handoff',
+        message:
+          'We want to refresh our SaaS dashboard with clearer storytelling. Need design system guidance and cinematic hero concepts.',
+        status: 'new',
+        receivedAt: '2026-04-18T10:22:00Z',
+        source: 'Site form',
+        priority: 'high',
+      },
+      {
+        id: 'msg-2',
+        name: 'Karim Mansour',
+        company: 'Atlas Mobility',
+        email: 'karim@atlasmobility.com',
+        topic: 'Marketing site',
+        message: 'Looking for a fast landing page with a 3D hero and a short product film embedded.',
+        status: 'responded',
+        receivedAt: '2026-04-17T16:40:00Z',
+        source: 'Email',
+        priority: 'medium',
+      },
+      {
+        id: 'msg-3',
+        name: 'Sofia Rossi',
+        company: 'Freelance',
+        email: 'sofia.r@email.com',
+        topic: 'Collaboration',
+        message: 'Would love to collaborate on a WebGL storytelling prototype later this month.',
+        status: 'open',
+        receivedAt: '2026-04-16T09:05:00Z',
+        source: 'Site form',
+        priority: 'low',
+      },
+    ],
+  },
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -1281,6 +1428,21 @@ const asContentStatus = (value: unknown, fallback: SiteContentStatus): SiteConte
     : fallback;
 };
 
+const asMessageStatus = (value: unknown, fallback: SiteMessageStatus): SiteMessageStatus => {
+  return typeof value === 'string' && ['new', 'open', 'responded', 'closed'].includes(value)
+    ? (value as SiteMessageStatus)
+    : fallback;
+};
+
+const asInboxPriority = (
+  value: unknown,
+  fallback: SiteInboxMessage['priority'],
+): SiteInboxMessage['priority'] => {
+  return typeof value === 'string' && ['low', 'medium', 'high'].includes(value)
+    ? (value as SiteInboxMessage['priority'])
+    : fallback;
+};
+
 const asVideoPlatform = (value: unknown, fallback: SiteVideoItem['platform']): SiteVideoItem['platform'] => {
   return typeof value === 'string' && ['youtube', 'vimeo', 'other'].includes(value)
     ? (value as SiteVideoItem['platform'])
@@ -1295,11 +1457,13 @@ const asBoundedNumber = (value: unknown, fallback: number, min: number, max: num
 export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   if (!isRecord(value)) return DEFAULT_SITE_CONFIG;
 
+  const siteSettings = isRecord(value.siteSettings) ? value.siteSettings : {};
   const featured = isRecord(value.featured) ? value.featured : {};
   const scene05 = isRecord(value.scene05) ? value.scene05 : {};
   const persistentUI = isRecord(value.persistentUI) ? value.persistentUI : {};
   const footer = isRecord(value.footer) ? value.footer : {};
   const articlesPage = isRecord(value.articlesPage) ? value.articlesPage : {};
+  const settingsIntegrations = isRecord(siteSettings.integrations) ? siteSettings.integrations : {};
   const footerSocialRecord = isRecord(footer.socialLinks) ? footer.socialLinks : {};
   const footerSocialArray = Array.isArray(footer.socialLinks) ? footer.socialLinks : [];
   const designSystem = isRecord(value.designSystem) ? value.designSystem : {};
@@ -1332,6 +1496,8 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   const cinematicScroll = isRecord(cinematicSequence.scroll) ? cinematicSequence.scroll : {};
   const globalFrame = isRecord(value.globalFrame) ? value.globalFrame : {};
   const visibility = isRecord(value.visibility) ? value.visibility : {};
+  const analytics = isRecord(value.analytics) ? value.analytics : {};
+  const inbox = isRecord(value.inbox) ? value.inbox : {};
 
   const projects = Array.isArray(value.projects)
     ? value.projects
@@ -1471,6 +1637,77 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
       ? navLinks
       : DEFAULT_SITE_CONFIG.footer.navLinks
     : [...(navLinks.length > 0 ? navLinks : DEFAULT_SITE_CONFIG.footer.navLinks), defaultFooterArticlesLink];
+
+  const analyticsTopPages = Array.isArray(analytics.topPages)
+    ? analytics.topPages
+        .map((item, index) => {
+          if (!isRecord(item)) return null;
+          const fallback = DEFAULT_SITE_CONFIG.analytics.topPages[Math.min(index, DEFAULT_SITE_CONFIG.analytics.topPages.length - 1)];
+          return {
+            id: asString(item.id, fallback?.id ?? `page-${index + 1}`),
+            label: asString(item.label, fallback?.label ?? ''),
+            metric: asNumber(item.metric, fallback?.metric ?? 0),
+            trend: asNumber(item.trend, fallback?.trend ?? 0),
+          };
+        })
+        .filter((item): item is SiteAnalyticsTopItem => !!item)
+    : DEFAULT_SITE_CONFIG.analytics.topPages;
+
+  const analyticsTopSources = Array.isArray(analytics.topSources)
+    ? analytics.topSources
+        .map((item, index) => {
+          if (!isRecord(item)) return null;
+          const fallback = DEFAULT_SITE_CONFIG.analytics.topSources[Math.min(index, DEFAULT_SITE_CONFIG.analytics.topSources.length - 1)];
+          return {
+            id: asString(item.id, fallback?.id ?? `source-${index + 1}`),
+            label: asString(item.label, fallback?.label ?? ''),
+            metric: asNumber(item.metric, fallback?.metric ?? 0),
+            trend: asNumber(item.trend, fallback?.trend ?? 0),
+          };
+        })
+        .filter((item): item is SiteAnalyticsTopItem => !!item)
+    : DEFAULT_SITE_CONFIG.analytics.topSources;
+
+  const analyticsGoals = Array.isArray(analytics.goals)
+    ? analytics.goals
+        .map((item, index) => {
+          if (!isRecord(item)) return null;
+          const fallback = DEFAULT_SITE_CONFIG.analytics.goals[Math.min(index, DEFAULT_SITE_CONFIG.analytics.goals.length - 1)];
+          return {
+            id: asString(item.id, fallback?.id ?? `goal-${index + 1}`),
+            name: asString(item.name, fallback?.name ?? ''),
+            completionRate: asBoundedNumber(
+              item.completionRate,
+              fallback?.completionRate ?? 0,
+              0,
+              100,
+            ),
+            weeklyChange: asNumber(item.weeklyChange, fallback?.weeklyChange ?? 0),
+          };
+        })
+        .filter((item): item is SiteAnalyticsGoal => !!item)
+    : DEFAULT_SITE_CONFIG.analytics.goals;
+
+  const inboxMessages = Array.isArray(inbox.messages)
+    ? inbox.messages
+        .map((item, index) => {
+          if (!isRecord(item)) return null;
+          const fallback = DEFAULT_SITE_CONFIG.inbox.messages[Math.min(index, DEFAULT_SITE_CONFIG.inbox.messages.length - 1)];
+          return {
+            id: asString(item.id, fallback?.id ?? `msg-${index + 1}`),
+            name: asString(item.name, fallback?.name ?? ''),
+            company: asString(item.company, fallback?.company ?? ''),
+            email: asString(item.email, fallback?.email ?? ''),
+            topic: asString(item.topic, fallback?.topic ?? ''),
+            message: asString(item.message, fallback?.message ?? ''),
+            status: asMessageStatus(item.status, fallback?.status ?? 'new'),
+            receivedAt: asString(item.receivedAt, fallback?.receivedAt ?? new Date().toISOString()),
+            source: asString(item.source, fallback?.source ?? 'Site form'),
+            priority: asInboxPriority(item.priority, fallback?.priority ?? 'medium'),
+          };
+        })
+        .filter((item): item is SiteInboxMessage => !!item)
+    : DEFAULT_SITE_CONFIG.inbox.messages;
 
   const socialLinks = footerSocialArray.length > 0
     ? footerSocialArray
@@ -1632,6 +1869,38 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
     : DEFAULT_SITE_CONFIG.scene05.aiTags;
 
   return {
+    siteSettings: {
+      siteName: asString(siteSettings.siteName, DEFAULT_SITE_CONFIG.siteSettings.siteName),
+      windowTitle: asString(siteSettings.windowTitle, DEFAULT_SITE_CONFIG.siteSettings.windowTitle),
+      metaDescription: asString(
+        siteSettings.metaDescription,
+        DEFAULT_SITE_CONFIG.siteSettings.metaDescription,
+      ),
+      primaryDomain: asString(siteSettings.primaryDomain, DEFAULT_SITE_CONFIG.siteSettings.primaryDomain),
+      contactEmail: asString(siteSettings.contactEmail, DEFAULT_SITE_CONFIG.siteSettings.contactEmail),
+      apiBaseUrl: asString(siteSettings.apiBaseUrl, DEFAULT_SITE_CONFIG.siteSettings.apiBaseUrl),
+      googleAnalyticsProperty: asString(
+        siteSettings.googleAnalyticsProperty,
+        DEFAULT_SITE_CONFIG.siteSettings.googleAnalyticsProperty,
+      ),
+      faviconUrl: asString(siteSettings.faviconUrl, DEFAULT_SITE_CONFIG.siteSettings.faviconUrl),
+      appIconUrl: asString(siteSettings.appIconUrl, DEFAULT_SITE_CONFIG.siteSettings.appIconUrl),
+      ogImageUrl: asString(siteSettings.ogImageUrl, DEFAULT_SITE_CONFIG.siteSettings.ogImageUrl),
+      integrations: {
+        analyticsConnected: asBoolean(
+          settingsIntegrations.analyticsConnected,
+          DEFAULT_SITE_CONFIG.siteSettings.integrations.analyticsConnected,
+        ),
+        apiConnected: asBoolean(
+          settingsIntegrations.apiConnected,
+          DEFAULT_SITE_CONFIG.siteSettings.integrations.apiConnected,
+        ),
+        domainVerified: asBoolean(
+          settingsIntegrations.domainVerified,
+          DEFAULT_SITE_CONFIG.siteSettings.integrations.domainVerified,
+        ),
+      },
+    },
     introText: asString(value.introText, DEFAULT_SITE_CONFIG.introText),
     featured: {
       titleLine1: asString(featured.titleLine1, DEFAULT_SITE_CONFIG.featured.titleLine1),
@@ -2730,6 +2999,28 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
       footerLegalLinks: asBoolean(visibility.footerLegalLinks, DEFAULT_SITE_CONFIG.visibility.footerLegalLinks),
       footerNavLinks: asBoolean(visibility.footerNavLinks, DEFAULT_SITE_CONFIG.visibility.footerNavLinks),
       footerOffice: asBoolean(visibility.footerOffice, DEFAULT_SITE_CONFIG.visibility.footerOffice),
+    },
+    analytics: {
+      monthlyVisitors: asNumber(analytics.monthlyVisitors, DEFAULT_SITE_CONFIG.analytics.monthlyVisitors),
+      avgSessionSeconds: asNumber(
+        analytics.avgSessionSeconds,
+        DEFAULT_SITE_CONFIG.analytics.avgSessionSeconds,
+      ),
+      bounceRate: asBoundedNumber(analytics.bounceRate, DEFAULT_SITE_CONFIG.analytics.bounceRate, 0, 100),
+      conversions: asNumber(analytics.conversions, DEFAULT_SITE_CONFIG.analytics.conversions),
+      conversionRate: asBoundedNumber(
+        analytics.conversionRate,
+        DEFAULT_SITE_CONFIG.analytics.conversionRate,
+        0,
+        100,
+      ),
+      topPages: analyticsTopPages.length > 0 ? analyticsTopPages : DEFAULT_SITE_CONFIG.analytics.topPages,
+      topSources: analyticsTopSources.length > 0 ? analyticsTopSources : DEFAULT_SITE_CONFIG.analytics.topSources,
+      goals: analyticsGoals.length > 0 ? analyticsGoals : DEFAULT_SITE_CONFIG.analytics.goals,
+      lastUpdated: asString(analytics.lastUpdated, DEFAULT_SITE_CONFIG.analytics.lastUpdated),
+    },
+    inbox: {
+      messages: inboxMessages.length > 0 ? inboxMessages : DEFAULT_SITE_CONFIG.inbox.messages,
     },
   };
 };
