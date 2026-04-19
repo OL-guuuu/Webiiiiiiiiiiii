@@ -75,7 +75,7 @@ export const Scene05Overlay: React.FC<Scene05OverlayProps> = ({ progress }) => {
   const lastScrollTopRef = useRef(0);
   const touchStartYRef = useRef<number | null>(null);
 
-  const isActive = progress > 0.05;
+  const isActive = progress >= 0;
 
   const visibleTimeline = useMemo(
     () => siteConfig.journeyTimeline.filter((item) => item.visible),

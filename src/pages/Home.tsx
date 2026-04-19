@@ -34,7 +34,7 @@ export const Home: React.FC = () => {
   const [finalFadeOpacity, setFinalFadeOpacity] = useState(0);
   const [isPortfolioActive, setIsPortfolioActive] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [scene05Progress, setScene05Progress] = useState(0);
+  const [scene05Progress, setScene05Progress] = useState(-1);
 
   const handleFadeComplete = () => {
     hasHomeBootCompleted = true;
@@ -77,7 +77,7 @@ export const Home: React.FC = () => {
         />
       ) : null}
 
-      {hasStarted && <PersistentUI isLightMode={scene05Progress > 0.02 || isPortfolioActive} />}
+      {hasStarted && <PersistentUI isLightMode={scene05Progress >= 0 || isPortfolioActive} />}
       {hasStarted && visibility.cursorAnimation ? (
         <CursorAnimationLayer animation={siteConfig.animation} />
       ) : null}
@@ -101,7 +101,8 @@ export const Home: React.FC = () => {
                 const s5p = Math.min(1, (p - ABOUT_UI_START) / (ABOUT_UI_END - ABOUT_UI_START));
                 setScene05Progress(s5p);
               } else {
-                setScene05Progress(0);
+                // Keep a distinct sentinel for "outside About" so 0 can represent About start.
+                setScene05Progress(-1);
               }
 
               if (p >= FINAL_FADE_IN_START) {

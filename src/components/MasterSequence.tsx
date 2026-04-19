@@ -11,6 +11,8 @@ gsap.registerPlugin(ScrollTrigger);
 const PHASE_PLAY_SCENE_02_03_END = 0.42;
 const PHASE_ABOUT_END = 0.74;
 const PHASE_SCENE_07_END = 0.95;
+const SCENE_07_ENTRY_EPSILON = 0.0001;
+const SCENE_07_REVERSE_ENTRY_EPSILON = 0.0012;
 const TRANSITION_DURATION_SCALE = 0.95;
 const SCENE_07_ACCELERATION_POWER = 0.72;
 
@@ -248,7 +250,17 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
       let target = 0;
       if (section === 'home') target = 0;
       else if (section === 'about') target = PHASE_ABOUT_END;
-      else if (section === 'projects-sequence') target = PHASE_SCENE_07_END;
+      else if (section === 'projects-sequence') {
+        // Enter scene-07 at its beginning so the sequence plays forward naturally.
+        target = PHASE_ABOUT_END + SCENE_07_ENTRY_EPSILON;
+      }
+      else if (section === 'projects-sequence-end') {
+        // Exit portfolio back into scene-07 near its end so reverse scrolling follows sequence.
+        target = Math.max(
+          PHASE_ABOUT_END + SCENE_07_ENTRY_EPSILON,
+          PHASE_SCENE_07_END - SCENE_07_REVERSE_ENTRY_EPSILON,
+        );
+      }
       else if (section === 'projects' || section === 'testimonials') target = 1.0;
       stopMomentum();
       tweenToProgress(target, { immediate: true });

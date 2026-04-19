@@ -611,10 +611,10 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   scene05: {
     badge: 'ABOUT ME',
     name: 'Oussama Lassoued',
-    role: 'UX/UI Designer & AI Product Builder',
+    role: 'UX Designer and AI Product Builder',
     portraitImage: '/frames/scene- 05/ezgif-frame-001.jpg',
     portraitAlt: 'Portrait image',
-    portraitCaption: 'Cinematic product designer focused on clarity and measurable outcomes.',
+    portraitCaption: '',
     visionTitle: 'Vision & Value',
     visionText:
       'I design interfaces that are not only visually refined, but also intentionally structured. My goal is to build digital products that feel natural to users and highly profitable for businesses.',
@@ -1568,6 +1568,18 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
     ? scene05.aiTags.map((item) => asString(item, '')).filter(Boolean)
     : DEFAULT_SITE_CONFIG.scene05.aiTags;
 
+  const rawScene05Name = asString(scene05.name, DEFAULT_SITE_CONFIG.scene05.name).trim();
+  const migratedScene05Name =
+    rawScene05Name === 'أسامة'
+      ? DEFAULT_SITE_CONFIG.scene05.name
+      : rawScene05Name || DEFAULT_SITE_CONFIG.scene05.name;
+
+  const rawScene05Role = asString(scene05.role, DEFAULT_SITE_CONFIG.scene05.role).trim();
+  const migratedScene05Role =
+    rawScene05Role === 'UX/UI Designer & AI Product Builder'
+      ? DEFAULT_SITE_CONFIG.scene05.role
+      : rawScene05Role || DEFAULT_SITE_CONFIG.scene05.role;
+
   return {
     introText: asString(value.introText, DEFAULT_SITE_CONFIG.introText),
     featured: {
@@ -1589,8 +1601,8 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
     testimonials: testimonials.length > 0 ? testimonials : DEFAULT_SITE_CONFIG.testimonials,
     scene05: {
       badge: asString(scene05.badge, DEFAULT_SITE_CONFIG.scene05.badge),
-      name: asString(scene05.name, DEFAULT_SITE_CONFIG.scene05.name),
-      role: asString(scene05.role, DEFAULT_SITE_CONFIG.scene05.role),
+      name: migratedScene05Name,
+      role: migratedScene05Role,
       portraitImage: asString(scene05.portraitImage, DEFAULT_SITE_CONFIG.scene05.portraitImage),
       portraitAlt: asString(scene05.portraitAlt, DEFAULT_SITE_CONFIG.scene05.portraitAlt),
       portraitCaption: asString(scene05.portraitCaption, DEFAULT_SITE_CONFIG.scene05.portraitCaption),

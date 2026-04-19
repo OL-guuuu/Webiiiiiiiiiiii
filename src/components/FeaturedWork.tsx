@@ -161,7 +161,7 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
   ]);
 
   const handleBack = () => {
-    window.dispatchEvent(new CustomEvent('nav-to-section', { detail: { section: 'home' } }));
+    window.dispatchEvent(new CustomEvent('nav-to-section', { detail: { section: 'projects-sequence-end' } }));
     window.dispatchEvent(new CustomEvent('toggle-navbar', { detail: { show: true } }));
   };
 

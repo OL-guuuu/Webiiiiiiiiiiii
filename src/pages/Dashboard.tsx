@@ -27,7 +27,6 @@ import {
   type SiteSection,
   type SiteTestimonial,
   type SiteTimelineEvent,
-  type SiteScene05LogoItem,
   type SiteScene05Certification,
   type SiteVideoItem,
 } from '../config/siteConfig';
@@ -589,20 +588,6 @@ export const Dashboard: React.FC = () => {
       testimonials: prev.testimonials.map((testimonial) =>
         testimonial.id === testimonialId ? updater(testimonial) : testimonial,
       ),
-    }));
-  };
-
-  const updateScene05LogoItem = (
-    listKey: 'learningLogos' | 'companyLogos',
-    itemId: string,
-    updater: (item: SiteScene05LogoItem) => SiteScene05LogoItem,
-  ) => {
-    updateConfig((prev) => ({
-      ...prev,
-      scene05: {
-        ...prev.scene05,
-        [listKey]: prev.scene05[listKey].map((item) => (item.id === itemId ? updater(item) : item)),
-      },
     }));
   };
 
@@ -2415,7 +2400,7 @@ export const Dashboard: React.FC = () => {
                 </div>
             </Card>
 
-            <Card title="About Page" subtitle="Edit full About content, logos, and certification cards">
+            <Card title="About Page" subtitle="Edit full About content and certification cards">
               <Input
                 label="Badge"
                 value={siteConfig.scene05.badge}
@@ -2445,20 +2430,6 @@ export const Dashboard: React.FC = () => {
                   updateConfig((prev) => ({ ...prev, scene05: { ...prev.scene05, portraitAlt: next } }))
                 }
               />
-              <Input
-                label="Portrait caption"
-                value={siteConfig.scene05.portraitCaption}
-                onChange={(next) =>
-                  updateConfig((prev) => ({ ...prev, scene05: { ...prev.scene05, portraitCaption: next } }))
-                }
-              />
-              <Input
-                label="Vision title"
-                value={siteConfig.scene05.visionTitle}
-                onChange={(next) =>
-                  updateConfig((prev) => ({ ...prev, scene05: { ...prev.scene05, visionTitle: next } }))
-                }
-              />
               <Textarea
                 label="Vision text"
                 value={siteConfig.scene05.visionText}
@@ -2485,182 +2456,6 @@ export const Dashboard: React.FC = () => {
                   }))
                 }
               />
-
-              <Input
-                label="Certification strip title"
-                value={siteConfig.scene05.learningLogosTitle}
-                onChange={(next) =>
-                  updateConfig((prev) => ({ ...prev, scene05: { ...prev.scene05, learningLogosTitle: next } }))
-                }
-              />
-
-              <div className="space-y-3 rounded-[12px] border border-white/10 bg-black/20 p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">
-                  Certification partner logos (moving strip)
-                </p>
-
-                {siteConfig.scene05.learningLogos.map((item) => (
-                  <div key={item.id} className={listItemClass}>
-                    <Input
-                      label="Partner name"
-                      value={item.name}
-                      onChange={(next) =>
-                        updateScene05LogoItem('learningLogos', item.id, (prev) => ({ ...prev, name: next }))
-                      }
-                    />
-                    <Input
-                      label="Logo URL"
-                      value={item.logoSrc}
-                      onChange={(next) =>
-                        updateScene05LogoItem('learningLogos', item.id, (prev) => ({ ...prev, logoSrc: next }))
-                      }
-                    />
-                    <Input
-                      label="Link URL"
-                      value={item.href}
-                      onChange={(next) =>
-                        updateScene05LogoItem('learningLogos', item.id, (prev) => ({ ...prev, href: next }))
-                      }
-                    />
-
-                    <div className="flex items-center justify-between gap-4 mt-2">
-                      <Toggle
-                        label="Visible"
-                        checked={item.visible}
-                        onChange={(next) =>
-                          updateScene05LogoItem('learningLogos', item.id, (prev) => ({ ...prev, visible: next }))
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          updateConfig((prev) => ({
-                            ...prev,
-                            scene05: {
-                              ...prev.scene05,
-                              learningLogos: prev.scene05.learningLogos.filter((entry) => entry.id !== item.id),
-                            },
-                          }));
-                        }}
-                        className="rounded-[8px] border border-red-400/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-red-200 hover:bg-red-500/10"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newItem: SiteScene05LogoItem = {
-                      id: `learn-${Date.now()}`,
-                      name: 'New Partner',
-                      logoSrc: '',
-                      href: '#',
-                      visible: true,
-                    };
-                    updateConfig((prev) => ({
-                      ...prev,
-                      scene05: {
-                        ...prev.scene05,
-                        learningLogos: [...prev.scene05.learningLogos, newItem],
-                      },
-                    }));
-                  }}
-                  className="rounded-[8px] border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
-                >
-                  Add Partner Logo
-                </button>
-              </div>
-
-              <Input
-                label="Company logos title"
-                value={siteConfig.scene05.companyLogosTitle}
-                onChange={(next) =>
-                  updateConfig((prev) => ({ ...prev, scene05: { ...prev.scene05, companyLogosTitle: next } }))
-                }
-              />
-
-              <div className="space-y-3 rounded-[12px] border border-white/10 bg-black/20 p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">
-                  Company logos
-                </p>
-
-                {siteConfig.scene05.companyLogos.map((item) => (
-                  <div key={item.id} className={listItemClass}>
-                    <Input
-                      label="Company name"
-                      value={item.name}
-                      onChange={(next) =>
-                        updateScene05LogoItem('companyLogos', item.id, (prev) => ({ ...prev, name: next }))
-                      }
-                    />
-                    <Input
-                      label="Logo URL"
-                      value={item.logoSrc}
-                      onChange={(next) =>
-                        updateScene05LogoItem('companyLogos', item.id, (prev) => ({ ...prev, logoSrc: next }))
-                      }
-                    />
-                    <Input
-                      label="Link URL"
-                      value={item.href}
-                      onChange={(next) =>
-                        updateScene05LogoItem('companyLogos', item.id, (prev) => ({ ...prev, href: next }))
-                      }
-                    />
-
-                    <div className="flex items-center justify-between gap-4 mt-2">
-                      <Toggle
-                        label="Visible"
-                        checked={item.visible}
-                        onChange={(next) =>
-                          updateScene05LogoItem('companyLogos', item.id, (prev) => ({ ...prev, visible: next }))
-                        }
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          updateConfig((prev) => ({
-                            ...prev,
-                            scene05: {
-                              ...prev.scene05,
-                              companyLogos: prev.scene05.companyLogos.filter((entry) => entry.id !== item.id),
-                            },
-                          }));
-                        }}
-                        className="rounded-[8px] border border-red-400/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-red-200 hover:bg-red-500/10"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newItem: SiteScene05LogoItem = {
-                      id: `company-${Date.now()}`,
-                      name: 'New Company',
-                      logoSrc: '',
-                      href: '#',
-                      visible: true,
-                    };
-                    updateConfig((prev) => ({
-                      ...prev,
-                      scene05: {
-                        ...prev.scene05,
-                        companyLogos: [...prev.scene05.companyLogos, newItem],
-                      },
-                    }));
-                  }}
-                  className="rounded-[8px] border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
-                >
-                  Add Company Logo
-                </button>
-              </div>
 
               <Input
                 label="Skills title"

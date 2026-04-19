@@ -45,6 +45,9 @@ export const PersistentUI: React.FC<PersistentUIProps> = ({ isLightMode = false 
   const [scrollVisible, setScrollVisible] = useState(true);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastScrollPositionRef = useRef(0);
+  const touchStartYRef = useRef<number | null>(null);
+  const lastGestureAtRef = useRef(0);
 
   useEffect(() => {
     if (!visibility.musicToggle) return;
@@ -135,6 +138,85 @@ export const PersistentUI: React.FC<PersistentUIProps> = ({ isLightMode = false 
       setScrollVisible(true);
     }
   }, [isLightMode]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const VISIBILITY_DELTA_THRESHOLD = 8;
+    const TOP_REVEAL_THRESHOLD = 24;
+    const MIN_GESTURE_GAP_MS = 80;
+
+    const applyDirectionalVisibility = (delta: number) => {
+      if (Math.abs(delta) < VISIBILITY_DELTA_THRESHOLD) return;
+
+      const now = Date.now();
+      if (now - lastGestureAtRef.current < MIN_GESTURE_GAP_MS) return;
+      lastGestureAtRef.current = now;
+
+      setScrollVisible(delta < 0);
+    };
+
+    const handleWindowScroll = () => {
+      const current = window.scrollY || window.pageYOffset || 0;
+
+      if (current <= TOP_REVEAL_THRESHOLD) {
+        setScrollVisible(true);
+        lastScrollPositionRef.current = current;
+        return;
+      }
+
+      const delta = current - lastScrollPositionRef.current;
+      applyDirectionalVisibility(delta);
+      lastScrollPositionRef.current = current;
+    };
+
+    const handleWheel = (event: WheelEvent) => {
+      const current = window.scrollY || window.pageYOffset || 0;
+      if (current <= TOP_REVEAL_THRESHOLD && event.deltaY < 0) {
+        setScrollVisible(true);
+        return;
+      }
+
+      applyDirectionalVisibility(event.deltaY);
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      touchStartYRef.current = event.touches[0]?.clientY ?? null;
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const startY = touchStartYRef.current;
+      touchStartYRef.current = null;
+      if (typeof startY !== 'number') return;
+
+      const endY = event.changedTouches[0]?.clientY;
+      if (typeof endY !== 'number') return;
+
+      const delta = startY - endY;
+      const current = window.scrollY || window.pageYOffset || 0;
+
+      if (current <= TOP_REVEAL_THRESHOLD && delta < 0) {
+        setScrollVisible(true);
+        return;
+      }
+
+      applyDirectionalVisibility(delta);
+    };
+
+    lastScrollPositionRef.current = window.scrollY || window.pageYOffset || 0;
+
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleWindowScroll);
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 200);
