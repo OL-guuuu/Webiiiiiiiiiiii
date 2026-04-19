@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSiteConfig } from '../context/SiteConfigContext';
+import { getMotionPresetMultiplier } from '../utils/motionSystem';
 
 interface CinematicAboutProps {
   progress: number;
@@ -33,8 +34,17 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
 
     const step = () => {
       setSmoothProgress((prev) => {
-        const smoothingBase = motionSystem.preset === 'snappy' ? 0.26 : motionSystem.preset === 'cinematic' ? 0.14 : 0.18;
-        const smoothing = Math.max(0.08, Math.min(0.42, smoothingBase / Math.max(0.5, motionSystem.intensity)));
+        // Base interpolation per global preset: snappy responds faster, cinematic eases more.
+        const SMOOTHING_PRESET_BASE =
+          motionSystem.preset === 'snappy' ? 0.26 : motionSystem.preset === 'cinematic' ? 0.14 : 0.18;
+        const MIN_SMOOTHING = 0.08;
+        const MAX_SMOOTHING = 0.42;
+        const MIN_INTENSITY_DIVISOR = 0.5;
+        // Clamp smoothing to prevent jitter (too high) or visible lag (too low).
+        const smoothing = Math.max(
+          MIN_SMOOTHING,
+          Math.min(MAX_SMOOTHING, SMOOTHING_PRESET_BASE / Math.max(MIN_INTENSITY_DIVISOR, motionSystem.intensity)),
+        );
         const next = clamp01(prev + (progress - prev) * smoothing);
         if (!active) return prev;
         if (Math.abs(next - progress) < 0.0004) return progress;
@@ -92,7 +102,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
   };
 
   const localProgress = smoothProgress;
-  const fadeScalar = motionSystem.preset === 'snappy' ? 0.85 : motionSystem.preset === 'cinematic' ? 1.2 : 1;
+  const fadeScalar = getMotionPresetMultiplier(motionSystem.preset);
   const textFade = rhythmValue(aboutMotion.textRhythm, 0.06);
   const certificationFade = rhythmValue(aboutMotion.certificationRhythm, 0.06);
 

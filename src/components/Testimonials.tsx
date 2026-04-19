@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { getButtonClass } from './designSystem';
+import { getMotionDurationScale, getMotionPresetMultiplier } from '../utils/motionSystem';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -31,7 +32,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
   useEffect(() => {
     if (!isActive || testimonials.length <= 1 || !testimonialMotion.enabled) return;
 
-    const presetScale = motionSystem.preset === 'snappy' ? 0.85 : motionSystem.preset === 'cinematic' ? 1.15 : 1;
+    const presetScale = getMotionPresetMultiplier(motionSystem.preset);
     const intervalMs = Math.max(1500, testimonialMotion.autoPlayMs * presetScale);
     const interval = setInterval(() => {
       if (!isAnimating) {
@@ -83,9 +84,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
     gsap.killTweensOf(contentRef.current);
 
     const transition = testimonialMotion.transitionStyle;
-    const durationScale =
-      Math.max(0.6, Math.min(1.7, motionSystem.intensity)) *
-      (motionSystem.preset === 'snappy' ? 0.8 : motionSystem.preset === 'cinematic' ? 1.2 : 1);
+    const durationScale = getMotionDurationScale(motionSystem.intensity, motionSystem.preset, 0.6, 1.7);
     const resolvedEase = motionSystem.easing;
     const exitConfig =
       transition === 'slide'

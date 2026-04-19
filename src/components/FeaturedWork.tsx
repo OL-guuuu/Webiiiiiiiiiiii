@@ -5,6 +5,7 @@ import { Testimonials } from './Testimonials';
 import { Footer } from './Footer';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { getButtonClass, getCardClass, getGlassClass, getScaledRem } from './designSystem';
+import { getMotionDurationScale } from '../utils/motionSystem';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -50,9 +51,11 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
           : projectAnimations.gridDepth === 'linger'
             ? 0.18
             : 0.12;
-      const motionScale =
-        motionSystem.preset === 'snappy' ? 0.82 : motionSystem.preset === 'cinematic' ? 1.25 : 1;
-      const durationScale = Math.max(0.5, Math.min(1.8, motionSystem.intensity)) * motionScale;
+      const durationScale = getMotionDurationScale(motionSystem.intensity, motionSystem.preset, 0.5, 1.8);
+      const staggerScale = Math.max(0.75, Math.min(1.35, motionSystem.intensity));
+      const MIN_SLIDE_SCALE = 0.82;
+      const SLIDE_SCALE_INTENSITY_STEP = 0.08;
+      const MAX_SCALE_INTENSITY = 1.5;
       const distance = projectAnimations.cardEntranceStyle === 'tilt' ? 120 : projectAnimations.cardEntranceStyle === 'drift' ? 90 : 70;
       const rotationX = projectAnimations.cardEntranceStyle === 'tilt' ? 14 : projectAnimations.cardEntranceStyle === 'rise' ? 0 : 8;
       const baseDuration =
@@ -69,7 +72,14 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
         tl.fromTo(
           '.fw-header-text',
           { y: distance * 0.5, opacity: 0, rotationX, transformOrigin: '0% 50% -40' },
-          { y: 0, opacity: 1, rotationX: 0, duration: Math.max(baseDuration * 0.6, resolvedDuration), ease: resolvedEase, stagger: 0.12 },
+          {
+            y: 0,
+            opacity: 1,
+            rotationX: 0,
+            duration: Math.max(baseDuration * 0.6, resolvedDuration),
+            ease: resolvedEase,
+            stagger: 0.12 * staggerScale,
+          },
         );
       } else {
         gsap.set('.fw-header-text', { opacity: 1, y: 0, rotationX: 0 });
@@ -113,9 +123,13 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
 
       if (projectAnimations.enabled && (visibility.testimonialsSection || visibility.featuredCtaSection)) {
         gsap.to('.projects-wrapper', {
-          x: '42%',
+            x: '42%',
             opacity: 0,
-            scale: 0.92,
+            // Keep a readable minimum card scale while still reflecting global motion intensity.
+            scale: Math.max(
+              MIN_SLIDE_SCALE,
+              1 - SLIDE_SCALE_INTENSITY_STEP * Math.min(MAX_SCALE_INTENSITY, motionSystem.intensity),
+            ),
             duration: Math.max(0.4, resolvedDuration),
             ease: resolvedEase,
           scrollTrigger: {
