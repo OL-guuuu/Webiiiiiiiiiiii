@@ -33,8 +33,11 @@ const applyDesignSystemVariables = (siteConfig: SiteConfig) => {
 
   const theme = siteConfig.designSystem.theme;
   const componentStyles = siteConfig.designSystem.componentStyles;
+  const foundation = siteConfig.designSystem.foundation;
+  const motion = siteConfig.animation.motion;
   const root = document.documentElement;
   const defaultTheme = DEFAULT_SITE_CONFIG.designSystem.theme;
+  const defaultMotion = DEFAULT_SITE_CONFIG.animation.motion;
   const normalizeCssLiteral = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '');
   const useTokenForLegacyLiteral = (value: string, legacyLiteral: string, tokenReference: string) => {
     return normalizeCssLiteral(value) === normalizeCssLiteral(legacyLiteral) ? tokenReference : value;
@@ -61,6 +64,23 @@ const applyDesignSystemVariables = (siteConfig: SiteConfig) => {
   root.style.setProperty('--ds-card-shadow-opacity', String(theme.cardShadowOpacity));
   root.style.setProperty('--ds-glass-tint', theme.glassTintColor);
   root.style.setProperty('--ds-glass-border', theme.glassBorderColor);
+  root.style.setProperty('--ds-space-section', `${foundation.spacing.sectionPaddingRem}rem`);
+  root.style.setProperty('--ds-space-stack', `${foundation.spacing.stackGapRem}rem`);
+  root.style.setProperty('--ds-space-grid', `${foundation.spacing.gridGapRem}rem`);
+  root.style.setProperty('--ds-space-card', `${foundation.spacing.cardPaddingRem}rem`);
+  root.style.setProperty('--ds-layout-max-width', `${foundation.layout.contentMaxWidthPx}px`);
+  root.style.setProperty('--ds-layout-column-gap', `${foundation.layout.columnGapRem}rem`);
+  root.style.setProperty('--ds-layout-max-columns', `${foundation.layout.maxGridColumns}`);
+  root.style.setProperty('--ds-type-eyebrow-size', `${foundation.typography.eyebrowSizeRem}rem`);
+  root.style.setProperty('--ds-type-eyebrow-tracking', `${foundation.typography.eyebrowLetterSpacingEm}em`);
+  root.style.setProperty('--ds-type-eyebrow-weight', `${foundation.typography.eyebrowWeight}`);
+  root.style.setProperty('--ds-motion-duration-fast', `${motion.durationFastMs}ms`);
+  root.style.setProperty('--ds-motion-duration-base', `${motion.durationBaseMs}ms`);
+  root.style.setProperty('--ds-motion-duration-slow', `${motion.durationSlowMs}ms`);
+  root.style.setProperty('--ds-motion-ease', motion.ease || defaultMotion.ease);
+  root.style.setProperty('--ds-motion-stagger', `${motion.staggerMs}ms`);
+  root.style.setProperty('--ds-motion-hover-scale', `${motion.hoverScale}`);
+  root.style.setProperty('--ds-motion-hover-lift', `${motion.hoverLiftPx}px`);
 
   const buttonVariants = ['button-1', 'button-2', 'button-3'] as const;
   for (const variant of buttonVariants) {

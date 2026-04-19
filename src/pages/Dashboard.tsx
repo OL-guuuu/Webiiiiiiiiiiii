@@ -49,40 +49,37 @@ type DashboardSectionId =
   | 'visibility'
   | 'scene05'
   | 'designSystem'
-  | 'animation';
+  | 'animation'
+  | 'articlesPage';
 
-type DashboardWorkspace = 'settings' | 'publishing';
+type DashboardWorkspace = 'settings' | 'writing';
 
 const DASHBOARD_SECTIONS: Array<{ id: DashboardSectionId; label: string; hint: string }> = [
-  { id: 'sequence', label: 'Cinematic Flow', hint: 'Scene order, auto handoff, and portal frame' },
   { id: 'intro', label: 'Intro Window', hint: 'Opening text and intro card styling' },
   { id: 'scene05', label: 'About Page', hint: 'Profile layout, portrait, story, and certifications' },
   { id: 'featured', label: 'Featured Area', hint: 'Section headings and CTA copy' },
   { id: 'projects', label: 'Projects', hint: 'Project cards and media sources' },
   { id: 'testimonials', label: 'Testimonials', hint: 'Slider content and avatar cards' },
+  { id: 'articlesPage', label: 'Articles Page', hint: 'Hero, filters, labels, and video copy' },
   { id: 'timeline', label: 'Career Timeline', hint: 'About page timeline milestones and descriptions' },
   { id: 'navigation', label: 'Navigation + Music', hint: 'Top bar links, CTA, and music controls' },
   { id: 'footer', label: 'Footer', hint: 'Contact, social, legal, and office details' },
   { id: 'visibility', label: 'Visibility', hint: 'Show/hide layers and major sections' },
-  { id: 'designSystem', label: 'Design System', hint: 'Tokens, variants, and style mapping' },
-  { id: 'animation', label: 'Animation Lab', hint: 'Cursor presets and live preview' },
+  { id: 'sequence', label: 'Cinematic Flow', hint: 'Scene order, auto handoff, and portal frame' },
+  { id: 'designSystem', label: 'Design System', hint: 'Tokens, foundations, and style mapping' },
+  { id: 'animation', label: 'Animation Lab', hint: 'Cursor presets and motion timings' },
 ];
 
 const DASHBOARD_SECTION_GROUPS: Array<{ id: string; label: string; sectionIds: DashboardSectionId[] }> = [
   {
-    id: 'cinematic-core',
-    label: 'Cinematic Core',
-    sectionIds: ['sequence', 'intro', 'scene05', 'visibility'],
-  },
-  {
-    id: 'portfolio-content',
-    label: 'Portfolio Content',
-    sectionIds: ['featured', 'projects', 'testimonials', 'timeline', 'navigation', 'footer'],
+    id: 'pages',
+    label: 'Pages & Content',
+    sectionIds: ['intro', 'scene05', 'featured', 'projects', 'testimonials', 'articlesPage', 'timeline', 'navigation', 'footer'],
   },
   {
     id: 'system-motion',
-    label: 'System and Motion',
-    sectionIds: ['designSystem', 'animation'],
+    label: 'System Layer',
+    sectionIds: ['visibility', 'sequence', 'designSystem', 'animation'],
   },
 ];
 
@@ -529,7 +526,7 @@ export const Dashboard: React.FC = () => {
   const [authError, setAuthError] = useState('');
   const [activeWorkspace, setActiveWorkspace] = useState<DashboardWorkspace>('settings');
   const [activeSection, setActiveSection] = useState<DashboardSectionId>('sequence');
-  const [publishingPanel, setPublishingPanel] = useState<'articles' | 'videos' | 'page'>('articles');
+  const [writingPanel, setWritingPanel] = useState<'articles' | 'videos'>('articles');
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadError, setUploadError] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -638,6 +635,63 @@ export const Dashboard: React.FC = () => {
     }));
   };
 
+  const updateFoundationTypography = <K extends keyof SiteConfig['designSystem']['foundation']['typography']>(
+    key: K,
+    value: SiteConfig['designSystem']['foundation']['typography'][K],
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      designSystem: {
+        ...prev.designSystem,
+        foundation: {
+          ...prev.designSystem.foundation,
+          typography: {
+            ...prev.designSystem.foundation.typography,
+            [key]: value,
+          },
+        },
+      },
+    }));
+  };
+
+  const updateFoundationSpacing = <K extends keyof SiteConfig['designSystem']['foundation']['spacing']>(
+    key: K,
+    value: SiteConfig['designSystem']['foundation']['spacing'][K],
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      designSystem: {
+        ...prev.designSystem,
+        foundation: {
+          ...prev.designSystem.foundation,
+          spacing: {
+            ...prev.designSystem.foundation.spacing,
+            [key]: value,
+          },
+        },
+      },
+    }));
+  };
+
+  const updateFoundationLayout = <K extends keyof SiteConfig['designSystem']['foundation']['layout']>(
+    key: K,
+    value: SiteConfig['designSystem']['foundation']['layout'][K],
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      designSystem: {
+        ...prev.designSystem,
+        foundation: {
+          ...prev.designSystem.foundation,
+          layout: {
+            ...prev.designSystem.foundation.layout,
+            [key]: value,
+          },
+        },
+      },
+    }));
+  };
+
   const updateArticlesPageField = <K extends keyof SiteConfig['articlesPage']>(
     key: K,
     value: SiteConfig['articlesPage'][K],
@@ -690,6 +744,22 @@ export const Dashboard: React.FC = () => {
               ...patch,
             },
           },
+        },
+      },
+    }));
+  };
+
+  const updateMotionSystem = <K extends keyof SiteConfig['animation']['motion']>(
+    key: K,
+    value: SiteConfig['animation']['motion'][K],
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      animation: {
+        ...prev.animation,
+        motion: {
+          ...prev.animation.motion,
+          [key]: value,
         },
       },
     }));
@@ -1724,6 +1794,166 @@ export const Dashboard: React.FC = () => {
           </div>
         );
 
+      case 'articlesPage':
+        return (
+          <div className="grid gap-4">
+            <Card title="Articles Page Copy" subtitle="Control the global copy seen on /articles">
+              <Input
+                label="Page title"
+                value={siteConfig.articlesPage.title}
+                onChange={(next) => updateArticlesPageField('title', next)}
+              />
+              <Input
+                label="Page subtitle"
+                value={siteConfig.articlesPage.subtitle}
+                onChange={(next) => updateArticlesPageField('subtitle', next)}
+              />
+              <Textarea
+                label="Page description"
+                value={siteConfig.articlesPage.description}
+                rows={4}
+                onChange={(next) => updateArticlesPageField('description', next)}
+              />
+
+              <div className="grid gap-3 rounded-[12px] border border-white/10 bg-black/20 p-3 md:grid-cols-2">
+                <Input
+                  label="Search placeholder"
+                  value={siteConfig.articlesPage.searchPlaceholder}
+                  onChange={(next) => updateArticlesPageField('searchPlaceholder', next)}
+                />
+                <Input
+                  label="All topics filter label"
+                  value={siteConfig.articlesPage.allTopicsLabel}
+                  onChange={(next) => updateArticlesPageField('allTopicsLabel', next)}
+                />
+                <Input
+                  label="Continue reading label"
+                  value={siteConfig.articlesPage.continueReadingLabel}
+                  onChange={(next) => updateArticlesPageField('continueReadingLabel', next)}
+                />
+                <Input
+                  label="Reading time suffix"
+                  value={siteConfig.articlesPage.minReadLabel}
+                  onChange={(next) => updateArticlesPageField('minReadLabel', next)}
+                />
+                <Input
+                  label="Byline prefix"
+                  value={siteConfig.articlesPage.byAuthorPrefix}
+                  onChange={(next) => updateArticlesPageField('byAuthorPrefix', next)}
+                />
+                <Input
+                  label="Featured article badge"
+                  value={siteConfig.articlesPage.featuredArticleLabel}
+                  onChange={(next) => updateArticlesPageField('featuredArticleLabel', next)}
+                />
+              </div>
+
+              <Input
+                label="Latest articles label"
+                value={siteConfig.articlesPage.latestArticlesLabel}
+                onChange={(next) => updateArticlesPageField('latestArticlesLabel', next)}
+              />
+
+              <div className="grid gap-3 rounded-[12px] border border-white/10 bg-black/20 p-3 md:grid-cols-2">
+                <Input
+                  label="No results title"
+                  value={siteConfig.articlesPage.noResultsTitle}
+                  onChange={(next) => updateArticlesPageField('noResultsTitle', next)}
+                />
+                <Input
+                  label="No results description"
+                  value={siteConfig.articlesPage.noResultsDescription}
+                  onChange={(next) => updateArticlesPageField('noResultsDescription', next)}
+                />
+                <Input
+                  label="Previous page label"
+                  value={siteConfig.articlesPage.previousPageLabel}
+                  onChange={(next) => updateArticlesPageField('previousPageLabel', next)}
+                />
+                <Input
+                  label="Next page label"
+                  value={siteConfig.articlesPage.nextPageLabel}
+                  onChange={(next) => updateArticlesPageField('nextPageLabel', next)}
+                />
+              </div>
+
+              <Input
+                label="Videos section title"
+                value={siteConfig.articlesPage.videosSectionTitle}
+                onChange={(next) => updateArticlesPageField('videosSectionTitle', next)}
+              />
+              <Textarea
+                label="Videos section description"
+                value={siteConfig.articlesPage.videosSectionDescription}
+                rows={3}
+                onChange={(next) => updateArticlesPageField('videosSectionDescription', next)}
+              />
+
+              <div className="grid gap-3 rounded-[12px] border border-white/10 bg-black/20 p-3 md:grid-cols-2">
+                <Input
+                  label="Article not found title"
+                  value={siteConfig.articlesPage.articleNotFoundTitle}
+                  onChange={(next) => updateArticlesPageField('articleNotFoundTitle', next)}
+                />
+                <Input
+                  label="Article not found description"
+                  value={siteConfig.articlesPage.articleNotFoundDescription}
+                  onChange={(next) => updateArticlesPageField('articleNotFoundDescription', next)}
+                />
+                <Input
+                  label="Back to articles label"
+                  value={siteConfig.articlesPage.backToArticlesLabel}
+                  onChange={(next) => updateArticlesPageField('backToArticlesLabel', next)}
+                />
+                <Input
+                  label="Related video label"
+                  value={siteConfig.articlesPage.relatedVideoLabel}
+                  onChange={(next) => updateArticlesPageField('relatedVideoLabel', next)}
+                />
+                <Input
+                  label="Open video button label"
+                  value={siteConfig.articlesPage.openVideoLabel}
+                  onChange={(next) => updateArticlesPageField('openVideoLabel', next)}
+                />
+                <Input
+                  label="Watch video button label"
+                  value={siteConfig.articlesPage.watchVideoLabel}
+                  onChange={(next) => updateArticlesPageField('watchVideoLabel', next)}
+                />
+                <Input
+                  label="No thumbnail label"
+                  value={siteConfig.articlesPage.noThumbnailLabel}
+                  onChange={(next) => updateArticlesPageField('noThumbnailLabel', next)}
+                />
+              </div>
+
+              <div className="grid gap-3 rounded-[12px] border border-white/10 bg-black/20 p-3 md:grid-cols-2">
+                <Input
+                  label="Newsletter title"
+                  value={siteConfig.articlesPage.newsletterTitle}
+                  onChange={(next) => updateArticlesPageField('newsletterTitle', next)}
+                />
+                <Input
+                  label="Newsletter button label"
+                  value={siteConfig.articlesPage.newsletterButtonLabel}
+                  onChange={(next) => updateArticlesPageField('newsletterButtonLabel', next)}
+                />
+                <Input
+                  label="Newsletter input placeholder"
+                  value={siteConfig.articlesPage.newsletterInputPlaceholder}
+                  onChange={(next) => updateArticlesPageField('newsletterInputPlaceholder', next)}
+                />
+                <Textarea
+                  label="Newsletter description"
+                  value={siteConfig.articlesPage.newsletterDescription}
+                  rows={3}
+                  onChange={(next) => updateArticlesPageField('newsletterDescription', next)}
+                />
+              </div>
+            </Card>
+          </div>
+        );
+
       case 'navigation':
         return (
           <div className="grid gap-4 xl:grid-cols-2">
@@ -2675,12 +2905,12 @@ export const Dashboard: React.FC = () => {
       case 'designSystem':
         return (
           <div className="grid gap-4">
-            <div className="grid gap-4 xl:grid-cols-2">
-              <Card title="Color Tokens" subtitle="Brand and surface colors used by all shared components">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Input
-                    label="Primary color"
-                    type="color"
+          <div className="grid gap-4 xl:grid-cols-3">
+            <Card title="Color Tokens" subtitle="Brand and surface colors used by all shared components">
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input
+                  label="Primary color"
+                  type="color"
                     value={siteConfig.designSystem.theme.primaryColor}
                     onChange={(next) => updateDesignTheme('primaryColor', next)}
                   />
@@ -2801,15 +3031,72 @@ export const Dashboard: React.FC = () => {
                     max={0.2}
                     step={0.005}
                     value={siteConfig.designSystem.theme.headingLetterSpacingEm}
-                    onChange={(next) =>
-                      updateDesignTheme('headingLetterSpacingEm', toSafeNumberInRange(next, -0.02, -0.12, 0.2))
-                    }
-                  />
-                </div>
-
+                  onChange={(next) =>
+                    updateDesignTheme('headingLetterSpacingEm', toSafeNumberInRange(next, -0.02, -0.12, 0.2))
+                  }
+                />
                 <Input
-                  label="Body line-height"
+                  label="Eyebrow size (rem)"
                   type="number"
+                  min={0.4}
+                  max={1.4}
+                  step={0.02}
+                  value={siteConfig.designSystem.foundation.typography.eyebrowSizeRem}
+                  onChange={(next) =>
+                    updateFoundationTypography(
+                      'eyebrowSizeRem',
+                      toSafeNumberInRange(
+                        next,
+                        siteConfig.designSystem.foundation.typography.eyebrowSizeRem,
+                        0.4,
+                        1.4,
+                      ),
+                    )
+                  }
+                />
+                <Input
+                  label="Eyebrow letter spacing (em)"
+                  type="number"
+                  min={-0.1}
+                  max={0.6}
+                  step={0.01}
+                  value={siteConfig.designSystem.foundation.typography.eyebrowLetterSpacingEm}
+                  onChange={(next) =>
+                    updateFoundationTypography(
+                      'eyebrowLetterSpacingEm',
+                      toSafeNumberInRange(
+                        next,
+                        siteConfig.designSystem.foundation.typography.eyebrowLetterSpacingEm,
+                        -0.1,
+                        0.6,
+                      ),
+                    )
+                  }
+                />
+                <Input
+                  label="Eyebrow weight"
+                  type="number"
+                  min={300}
+                  max={900}
+                  step={10}
+                  value={siteConfig.designSystem.foundation.typography.eyebrowWeight}
+                  onChange={(next) =>
+                    updateFoundationTypography(
+                      'eyebrowWeight',
+                      toSafeNumberInRange(
+                        next,
+                        siteConfig.designSystem.foundation.typography.eyebrowWeight,
+                        300,
+                        900,
+                      ),
+                    )
+                  }
+                />
+              </div>
+
+              <Input
+                label="Body line-height"
+                type="number"
                   min={1.1}
                   max={2.2}
                   step={0.05}
@@ -2817,9 +3104,121 @@ export const Dashboard: React.FC = () => {
                   onChange={(next) =>
                     updateDesignTheme('bodyLineHeight', toSafeNumberInRange(next, 1.6, 1.1, 2.2))
                   }
+              />
+            </Card>
+
+            <Card title="Layout & Rhythm" subtitle="Control spacing scale, card padding, and max content width">
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input
+                  label="Section padding (rem)"
+                  type="number"
+                  min={1}
+                  max={8}
+                  step={0.1}
+                  value={siteConfig.designSystem.foundation.spacing.sectionPaddingRem}
+                  onChange={(next) =>
+                    updateFoundationSpacing(
+                      'sectionPaddingRem',
+                      toSafeNumberInRange(next, siteConfig.designSystem.foundation.spacing.sectionPaddingRem, 1, 8),
+                    )
+                  }
                 />
-              </Card>
-            </div>
+                <Input
+                  label="Stack gap (rem)"
+                  type="number"
+                  min={0.4}
+                  max={3}
+                  step={0.05}
+                  value={siteConfig.designSystem.foundation.spacing.stackGapRem}
+                  onChange={(next) =>
+                    updateFoundationSpacing(
+                      'stackGapRem',
+                      toSafeNumberInRange(next, siteConfig.designSystem.foundation.spacing.stackGapRem, 0.4, 3),
+                    )
+                  }
+                />
+                <Input
+                  label="Grid gap (rem)"
+                  type="number"
+                  min={0.4}
+                  max={3}
+                  step={0.05}
+                  value={siteConfig.designSystem.foundation.spacing.gridGapRem}
+                  onChange={(next) =>
+                    updateFoundationSpacing(
+                      'gridGapRem',
+                      toSafeNumberInRange(next, siteConfig.designSystem.foundation.spacing.gridGapRem, 0.4, 3),
+                    )
+                  }
+                />
+                <Input
+                  label="Card padding (rem)"
+                  type="number"
+                  min={0.75}
+                  max={3.5}
+                  step={0.05}
+                  value={siteConfig.designSystem.foundation.spacing.cardPaddingRem}
+                  onChange={(next) =>
+                    updateFoundationSpacing(
+                      'cardPaddingRem',
+                      toSafeNumberInRange(next, siteConfig.designSystem.foundation.spacing.cardPaddingRem, 0.75, 3.5),
+                    )
+                  }
+                />
+                <Input
+                  label="Max content width (px)"
+                  type="number"
+                  min={960}
+                  max={1920}
+                  step={10}
+                  value={siteConfig.designSystem.foundation.layout.contentMaxWidthPx}
+                  onChange={(next) =>
+                    updateFoundationLayout(
+                      'contentMaxWidthPx',
+                      toSafeNumberInRange(
+                        next,
+                        siteConfig.designSystem.foundation.layout.contentMaxWidthPx,
+                        960,
+                        1920,
+                      ),
+                    )
+                  }
+                />
+                <Input
+                  label="Column gap (rem)"
+                  type="number"
+                  min={0.5}
+                  max={4}
+                  step={0.05}
+                  value={siteConfig.designSystem.foundation.layout.columnGapRem}
+                  onChange={(next) =>
+                    updateFoundationLayout(
+                      'columnGapRem',
+                      toSafeNumberInRange(next, siteConfig.designSystem.foundation.layout.columnGapRem, 0.5, 4),
+                    )
+                  }
+                />
+                <Input
+                  label="Max grid columns"
+                  type="number"
+                  min={6}
+                  max={18}
+                  step={1}
+                  value={siteConfig.designSystem.foundation.layout.maxGridColumns}
+                  onChange={(next) =>
+                    updateFoundationLayout(
+                      'maxGridColumns',
+                      toSafeNumberInRange(next, siteConfig.designSystem.foundation.layout.maxGridColumns, 6, 18),
+                    )
+                  }
+                />
+              </div>
+
+              <p className="text-xs text-white/60">
+                These tokens drive the new ds-section, ds-stack, and ds-grid spacing classes so every page respects the same rhythm.
+              </p>
+            </Card>
+          </div>
 
             <div className="grid gap-4 xl:grid-cols-2">
               <Card title="Component Physics" subtitle="Radius, borders, blur and shadows for buttons/cards">
@@ -4167,6 +4566,108 @@ export const Dashboard: React.FC = () => {
                 values.
               </p>
             </Card>
+
+            <Card
+              className="xl:col-span-2"
+              title="Motion System"
+              subtitle="Global durations, easing, and hover response applied to all design system components"
+            >
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                <Input
+                  label="Fast duration (ms)"
+                  type="number"
+                  min={60}
+                  max={600}
+                  step={10}
+                  value={siteConfig.animation.motion.durationFastMs}
+                  onChange={(next) =>
+                    updateMotionSystem(
+                      'durationFastMs',
+                      toSafeNumberInRange(next, siteConfig.animation.motion.durationFastMs, 60, 600),
+                    )
+                  }
+                />
+                <Input
+                  label="Base duration (ms)"
+                  type="number"
+                  min={120}
+                  max={900}
+                  step={10}
+                  value={siteConfig.animation.motion.durationBaseMs}
+                  onChange={(next) =>
+                    updateMotionSystem(
+                      'durationBaseMs',
+                      toSafeNumberInRange(next, siteConfig.animation.motion.durationBaseMs, 120, 900),
+                    )
+                  }
+                />
+                <Input
+                  label="Slow duration (ms)"
+                  type="number"
+                  min={180}
+                  max={1600}
+                  step={10}
+                  value={siteConfig.animation.motion.durationSlowMs}
+                  onChange={(next) =>
+                    updateMotionSystem(
+                      'durationSlowMs',
+                      toSafeNumberInRange(next, siteConfig.animation.motion.durationSlowMs, 180, 1600),
+                    )
+                  }
+                />
+                <Input
+                  label="Ease curve (CSS timing function)"
+                  value={siteConfig.animation.motion.ease}
+                  onChange={(next) => updateMotionSystem('ease', next || DEFAULT_SITE_CONFIG.animation.motion.ease)}
+                />
+                <Input
+                  label="Stagger (ms)"
+                  type="number"
+                  min={0}
+                  max={420}
+                  step={5}
+                  value={siteConfig.animation.motion.staggerMs}
+                  onChange={(next) =>
+                    updateMotionSystem(
+                      'staggerMs',
+                      toSafeNumberInRange(next, siteConfig.animation.motion.staggerMs, 0, 420),
+                    )
+                  }
+                />
+                <Input
+                  label="Hover lift (px)"
+                  type="number"
+                  min={0}
+                  max={18}
+                  step={0.5}
+                  value={siteConfig.animation.motion.hoverLiftPx}
+                  onChange={(next) =>
+                    updateMotionSystem(
+                      'hoverLiftPx',
+                      toSafeNumberInRange(next, siteConfig.animation.motion.hoverLiftPx, 0, 18),
+                    )
+                  }
+                />
+                <Input
+                  label="Hover scale"
+                  type="number"
+                  min={0.9}
+                  max={1.2}
+                  step={0.01}
+                  value={siteConfig.animation.motion.hoverScale}
+                  onChange={(next) =>
+                    updateMotionSystem(
+                      'hoverScale',
+                      toSafeNumberInRange(next, siteConfig.animation.motion.hoverScale, 0.9, 1.2),
+                    )
+                  }
+                />
+              </div>
+
+              <p className="text-xs text-white/60">
+                Buttons, cards, and glass surfaces now read these motion tokens so hover lift, easing, and rhythm stay aligned across every page.
+              </p>
+            </Card>
           </div>
         );
 
@@ -4175,7 +4676,7 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const renderPublishingStudio = () => {
+  const renderWritingStudio = () => {
     const contentStatusOptions: Array<{ value: SiteContentStatus; label: string }> = [
       { value: 'draft', label: 'Draft' },
       { value: 'scheduled', label: 'Scheduled' },
@@ -4184,13 +4685,13 @@ export const Dashboard: React.FC = () => {
 
     return (
       <div className="grid gap-4">
-        <Card title="Publishing Studio" subtitle="Write, stage, and publish articles + videos from one place">
-          <div className="grid gap-3 md:grid-cols-3">
+        <Card title="Writing Studio" subtitle="Write, stage, and publish articles + videos from one place">
+          <div className="grid gap-3 md:grid-cols-2">
             <button
               type="button"
-              onClick={() => setPublishingPanel('articles')}
+              onClick={() => setWritingPanel('articles')}
               className={`rounded-[12px] border px-3 py-3 text-left transition-all ${
-                publishingPanel === 'articles'
+                writingPanel === 'articles'
                   ? 'border-white/32 bg-white/14 text-white'
                   : 'border-white/12 bg-black/20 text-white/72 hover:bg-white/8'
               }`}
@@ -4200,27 +4701,15 @@ export const Dashboard: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setPublishingPanel('videos')}
+              onClick={() => setWritingPanel('videos')}
               className={`rounded-[12px] border px-3 py-3 text-left transition-all ${
-                publishingPanel === 'videos'
+                writingPanel === 'videos'
                   ? 'border-white/32 bg-white/14 text-white'
                   : 'border-white/12 bg-black/20 text-white/72 hover:bg-white/8'
               }`}
             >
               <p className="font-mono text-[10px] uppercase tracking-[0.14em]">Videos</p>
               <p className="mt-1 text-[12px] text-white/55">{stats.publishedVideos} published</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPublishingPanel('page')}
-              className={`rounded-[12px] border px-3 py-3 text-left transition-all ${
-                publishingPanel === 'page'
-                  ? 'border-white/32 bg-white/14 text-white'
-                  : 'border-white/12 bg-black/20 text-white/72 hover:bg-white/8'
-              }`}
-            >
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em]">Articles Page</p>
-              <p className="mt-1 text-[12px] text-white/55">Hero copy and section labels</p>
             </button>
           </div>
 
@@ -4229,164 +4718,7 @@ export const Dashboard: React.FC = () => {
           </p>
         </Card>
 
-        {publishingPanel === 'page' ? (
-          <Card title="Articles Page Copy" subtitle="Control the global copy seen on /articles">
-            <Input
-              label="Page title"
-              value={siteConfig.articlesPage.title}
-              onChange={(next) => updateArticlesPageField('title', next)}
-            />
-            <Input
-              label="Page subtitle"
-              value={siteConfig.articlesPage.subtitle}
-              onChange={(next) => updateArticlesPageField('subtitle', next)}
-            />
-            <Textarea
-              label="Page description"
-              value={siteConfig.articlesPage.description}
-              rows={4}
-              onChange={(next) => updateArticlesPageField('description', next)}
-            />
-
-            <div className="grid gap-3 rounded-[12px] border border-white/10 bg-black/20 p-3 md:grid-cols-2">
-              <Input
-                label="Search placeholder"
-                value={siteConfig.articlesPage.searchPlaceholder}
-                onChange={(next) => updateArticlesPageField('searchPlaceholder', next)}
-              />
-              <Input
-                label="All topics filter label"
-                value={siteConfig.articlesPage.allTopicsLabel}
-                onChange={(next) => updateArticlesPageField('allTopicsLabel', next)}
-              />
-              <Input
-                label="Continue reading label"
-                value={siteConfig.articlesPage.continueReadingLabel}
-                onChange={(next) => updateArticlesPageField('continueReadingLabel', next)}
-              />
-              <Input
-                label="Reading time suffix"
-                value={siteConfig.articlesPage.minReadLabel}
-                onChange={(next) => updateArticlesPageField('minReadLabel', next)}
-              />
-              <Input
-                label="Byline prefix"
-                value={siteConfig.articlesPage.byAuthorPrefix}
-                onChange={(next) => updateArticlesPageField('byAuthorPrefix', next)}
-              />
-              <Input
-                label="Featured article badge"
-                value={siteConfig.articlesPage.featuredArticleLabel}
-                onChange={(next) => updateArticlesPageField('featuredArticleLabel', next)}
-              />
-            </div>
-
-            <Input
-              label="Latest articles label"
-              value={siteConfig.articlesPage.latestArticlesLabel}
-              onChange={(next) => updateArticlesPageField('latestArticlesLabel', next)}
-            />
-
-            <div className="grid gap-3 rounded-[12px] border border-white/10 bg-black/20 p-3 md:grid-cols-2">
-              <Input
-                label="No results title"
-                value={siteConfig.articlesPage.noResultsTitle}
-                onChange={(next) => updateArticlesPageField('noResultsTitle', next)}
-              />
-              <Input
-                label="No results description"
-                value={siteConfig.articlesPage.noResultsDescription}
-                onChange={(next) => updateArticlesPageField('noResultsDescription', next)}
-              />
-              <Input
-                label="Previous page label"
-                value={siteConfig.articlesPage.previousPageLabel}
-                onChange={(next) => updateArticlesPageField('previousPageLabel', next)}
-              />
-              <Input
-                label="Next page label"
-                value={siteConfig.articlesPage.nextPageLabel}
-                onChange={(next) => updateArticlesPageField('nextPageLabel', next)}
-              />
-            </div>
-
-            <Input
-              label="Videos section title"
-              value={siteConfig.articlesPage.videosSectionTitle}
-              onChange={(next) => updateArticlesPageField('videosSectionTitle', next)}
-            />
-            <Textarea
-              label="Videos section description"
-              value={siteConfig.articlesPage.videosSectionDescription}
-              rows={3}
-              onChange={(next) => updateArticlesPageField('videosSectionDescription', next)}
-            />
-
-            <div className="grid gap-3 rounded-[12px] border border-white/10 bg-black/20 p-3 md:grid-cols-2">
-              <Input
-                label="Article not found title"
-                value={siteConfig.articlesPage.articleNotFoundTitle}
-                onChange={(next) => updateArticlesPageField('articleNotFoundTitle', next)}
-              />
-              <Input
-                label="Article not found description"
-                value={siteConfig.articlesPage.articleNotFoundDescription}
-                onChange={(next) => updateArticlesPageField('articleNotFoundDescription', next)}
-              />
-              <Input
-                label="Back to articles label"
-                value={siteConfig.articlesPage.backToArticlesLabel}
-                onChange={(next) => updateArticlesPageField('backToArticlesLabel', next)}
-              />
-              <Input
-                label="Related video label"
-                value={siteConfig.articlesPage.relatedVideoLabel}
-                onChange={(next) => updateArticlesPageField('relatedVideoLabel', next)}
-              />
-              <Input
-                label="Open video button label"
-                value={siteConfig.articlesPage.openVideoLabel}
-                onChange={(next) => updateArticlesPageField('openVideoLabel', next)}
-              />
-              <Input
-                label="Watch video button label"
-                value={siteConfig.articlesPage.watchVideoLabel}
-                onChange={(next) => updateArticlesPageField('watchVideoLabel', next)}
-              />
-              <Input
-                label="No thumbnail label"
-                value={siteConfig.articlesPage.noThumbnailLabel}
-                onChange={(next) => updateArticlesPageField('noThumbnailLabel', next)}
-              />
-            </div>
-
-            <div className="grid gap-3 rounded-[12px] border border-white/10 bg-black/20 p-3 md:grid-cols-2">
-              <Input
-                label="Newsletter title"
-                value={siteConfig.articlesPage.newsletterTitle}
-                onChange={(next) => updateArticlesPageField('newsletterTitle', next)}
-              />
-              <Input
-                label="Newsletter button label"
-                value={siteConfig.articlesPage.newsletterButtonLabel}
-                onChange={(next) => updateArticlesPageField('newsletterButtonLabel', next)}
-              />
-              <Input
-                label="Newsletter input placeholder"
-                value={siteConfig.articlesPage.newsletterInputPlaceholder}
-                onChange={(next) => updateArticlesPageField('newsletterInputPlaceholder', next)}
-              />
-              <Textarea
-                label="Newsletter description"
-                value={siteConfig.articlesPage.newsletterDescription}
-                rows={3}
-                onChange={(next) => updateArticlesPageField('newsletterDescription', next)}
-              />
-            </div>
-          </Card>
-        ) : null}
-
-        {publishingPanel === 'articles' ? (
+        {writingPanel === 'articles' ? (
           <Card title="Article Manager" subtitle="Create long-form posts with full metadata and publishing status">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-white/10 bg-black/20 px-3 py-3">
               <p className="text-xs text-white/62">
@@ -4600,7 +4932,7 @@ export const Dashboard: React.FC = () => {
           </Card>
         ) : null}
 
-        {publishingPanel === 'videos' ? (
+        {writingPanel === 'videos' ? (
           <Card title="Video Manager" subtitle="Publish supporting videos for the Articles page and linked content">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-white/10 bg-black/20 px-3 py-3">
               <p className="text-xs text-white/62">
@@ -4775,7 +5107,10 @@ export const Dashboard: React.FC = () => {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(76,114,255,0.12),transparent_42%),radial-gradient(circle_at_80%_10%,rgba(110,255,218,0.08),transparent_35%),#060608] text-white">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[rgba(8,8,10,0.82)] backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 md:px-6 xl:flex-row xl:items-center xl:justify-between">
+        <div
+          className="mx-auto flex w-full flex-col gap-4 px-4 py-4 md:px-6 xl:flex-row xl:items-center xl:justify-between"
+          style={{ maxWidth: 'var(--ds-layout-max-width)' }}
+        >
           <div>
             <h1 className="font-mono text-[11px] uppercase tracking-[0.24em] text-white/95">Cinematic Site Dashboard</h1>
             <p className="mt-1 text-sm text-white/58">A cleaner control center for content, design system, and motion.</p>
@@ -4795,17 +5130,17 @@ export const Dashboard: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveWorkspace('publishing')}
-                className={`rounded-[11px] border px-3 py-2 text-left transition-all ${
-                  activeWorkspace === 'publishing'
-                    ? 'border-white/35 bg-white/15 text-white'
-                    : 'border-white/14 bg-black/25 text-white/72 hover:bg-white/10'
-                }`}
-              >
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em]">Publishing Studio</p>
-                <p className="mt-1 text-[12px] text-white/58">Write and publish articles and videos</p>
-              </button>
-            </div>
+              onClick={() => setActiveWorkspace('writing')}
+              className={`rounded-[11px] border px-3 py-2 text-left transition-all ${
+                activeWorkspace === 'writing'
+                  ? 'border-white/35 bg-white/15 text-white'
+                  : 'border-white/14 bg-black/25 text-white/72 hover:bg-white/10'
+              }`}
+            >
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em]">Writing Studio</p>
+              <p className="mt-1 text-[12px] text-white/58">Write and publish articles and videos</p>
+            </button>
+          </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
@@ -4872,7 +5207,10 @@ export const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-[1600px] px-4 pb-8 pt-5 md:px-6">
+      <div
+        className="mx-auto w-full px-4 pb-8 pt-5 md:px-6"
+        style={{ maxWidth: 'var(--ds-layout-max-width)' }}
+      >
         {activeWorkspace === 'settings' ? (
           <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
             <aside className="xl:sticky xl:top-[122px] xl:self-start">
@@ -4944,7 +5282,7 @@ export const Dashboard: React.FC = () => {
               </div>
             ) : null}
 
-            {renderPublishingStudio()}
+            {renderWritingStudio()}
           </section>
         )}
       </div>

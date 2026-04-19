@@ -77,6 +77,7 @@ const buildPagination = (currentPage: number, totalPages: number): PaginationIte
 export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
   const { siteConfig } = useSiteConfig();
   const { articlesPage, articles, designSystem, visibility, animation } = siteConfig;
+  const foundation = designSystem.foundation;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTopic, setActiveTopic] = useState(ALL_TOPICS_TOKEN);
@@ -182,13 +183,24 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
   } = designSystem.theme;
 
   const dsComponents = designSystem.components;
+  const layoutStyle = useMemo(() => {
+    return {
+      maxWidth: `${foundation.layout.contentMaxWidthPx}px`,
+      paddingInline: 'clamp(1.25rem, 3vw, 2.75rem)',
+      paddingTop: `calc(${foundation.spacing.sectionPaddingRem}rem + 2.5rem)`,
+      paddingBottom: `${foundation.spacing.sectionPaddingRem}rem`,
+      rowGap: `${foundation.spacing.gridGapRem}rem`,
+    };
+  }, [foundation]);
+  const gridGap = `${foundation.spacing.gridGapRem}rem`;
+  const stackGap = `${foundation.spacing.stackGapRem}rem`;
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f7f8fc_0%,#eef1f7_46%,#f6f8fd_100%)] text-[#111217] selection:bg-[#111217]/10" data-surface="base">
       {visibility.cursorAnimation ? <CursorAnimationLayer animation={animation} /> : null}
       <PersistentUI isLightMode />
 
-      <main className="mx-auto w-full max-w-[1600px] overflow-x-clip px-4 pb-20 pt-32 sm:px-6 md:px-12 lg:px-20">
+      <main className="ds-section w-full overflow-x-clip" style={layoutStyle}>
         {slug && !currentArticle ? (
           <section className="mt-10">
             <div
@@ -368,11 +380,14 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
               <div className="pointer-events-none absolute -left-20 top-0 h-52 w-52 rounded-full bg-[#d7e4ff] blur-[70px]" />
               <div className="pointer-events-none absolute -right-16 bottom-0 h-44 w-44 rounded-full bg-[#dce9f4] blur-[70px]" />
 
-              <div className="relative grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+              <div
+                className="relative grid lg:grid-cols-[1.15fr_0.85fr] lg:items-end"
+                style={{ gap: gridGap }}
+              >
                 <div>
-                  <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#111217]/42">{articlesPage.subtitle}</p>
+                  <p className="ds-eyebrow text-[#111217]/60">{articlesPage.subtitle}</p>
                   <h1
-                    className="mt-3 text-[#111217]"
+                    className="ds-heading mt-3 text-[#111217]"
                     style={{
                       fontSize: `clamp(${getScaledRem(displayTitleSizeRem * 0.34, headingScale)}, 6vw, ${getScaledRem(
                         displayTitleSizeRem * 0.62,
@@ -387,20 +402,14 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
                   </h1>
                 </div>
 
-                <p
-                  className="max-w-[60ch] text-[#111217]/72 lg:justify-self-end"
-                  style={{
-                    fontSize: `${Math.max(0.95, bodyTextSizeRem)}rem`,
-                    lineHeight: bodyLineHeight,
-                  }}
-                >
+                <p className="ds-body max-w-[60ch] text-[#111217]/72 lg:justify-self-end" style={{ lineHeight: bodyLineHeight }}>
                   {articlesPage.description}
                 </p>
               </div>
             </section>
 
             <section className="mt-8 border-b border-[#111217]/10 pb-6">
-              <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="grid lg:grid-cols-[1.1fr_0.9fr]" style={{ gap: gridGap }}>
                 <div className="relative">
                   <svg
                     aria-hidden
@@ -426,7 +435,7 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
                   />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2" style={{ rowGap: stackGap }}>
                   {topics.map((topic) => {
                     const isActive = activeTopic === topic.token;
                     return (

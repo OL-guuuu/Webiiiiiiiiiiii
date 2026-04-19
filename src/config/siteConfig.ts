@@ -295,6 +295,25 @@ export interface SiteCardStylePreset {
   lightShadowOpacity: number;
 }
 
+export interface SiteDesignFoundation {
+  typography: {
+    eyebrowSizeRem: number;
+    eyebrowWeight: number;
+    eyebrowLetterSpacingEm: number;
+  };
+  spacing: {
+    sectionPaddingRem: number;
+    stackGapRem: number;
+    gridGapRem: number;
+    cardPaddingRem: number;
+  };
+  layout: {
+    contentMaxWidthPx: number;
+    columnGapRem: number;
+    maxGridColumns: number;
+  };
+}
+
 export interface SiteTimelineEvent {
   id: string;
   title: string;
@@ -327,6 +346,16 @@ export interface SiteScene05Certification {
   credentialUrl: string;
   logoSrc: string;
   visible: boolean;
+}
+
+export interface SiteMotionSystem {
+  durationFastMs: number;
+  durationBaseMs: number;
+  durationSlowMs: number;
+  ease: string;
+  staggerMs: number;
+  hoverScale: number;
+  hoverLiftPx: number;
 }
 
 export interface SiteConfig {
@@ -470,6 +499,7 @@ export interface SiteConfig {
       buttons: Record<SiteButtonVariant, SiteButtonStylePreset>;
       cards: Record<SiteCardVariant, SiteCardStylePreset>;
     };
+    foundation: SiteDesignFoundation;
   };
   animation: {
     activeCursorAnimation: SiteCursorAnimationMode;
@@ -482,6 +512,7 @@ export interface SiteConfig {
     beam: SiteCursorBeamConfig;
     plasma: SiteCursorPlasmaConfig;
     sections: SiteSectionAnimationConfig;
+    motion: SiteMotionSystem;
   };
   cinematicSequence: SiteCinematicSequenceConfig;
   globalFrame: SiteGlobalFrameConfig;
@@ -983,6 +1014,24 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
         },
       },
     },
+    foundation: {
+      typography: {
+        eyebrowSizeRem: 0.72,
+        eyebrowWeight: 720,
+        eyebrowLetterSpacingEm: 0.28,
+      },
+      spacing: {
+        sectionPaddingRem: 4.5,
+        stackGapRem: 1.2,
+        gridGapRem: 1.5,
+        cardPaddingRem: 1.6,
+      },
+      layout: {
+        contentMaxWidthPx: 1400,
+        columnGapRem: 1.4,
+        maxGridColumns: 12,
+      },
+    },
   },
   animation: {
     activeCursorAnimation: 'fluid',
@@ -1076,6 +1125,15 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
         autoPlayMs: 5200,
         floatIntensity: 0.6,
       },
+    },
+    motion: {
+      durationFastMs: 160,
+      durationBaseMs: 260,
+      durationSlowMs: 420,
+      ease: 'cubic-bezier(0.19, 1, 0.22, 1)',
+      staggerMs: 60,
+      hoverScale: 1.02,
+      hoverLiftPx: 2,
     },
   },
   cinematicSequence: {
@@ -1250,6 +1308,10 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   const designComponentStyles = isRecord(designSystem.componentStyles)
     ? designSystem.componentStyles
     : {};
+  const designFoundation = isRecord(designSystem.foundation) ? designSystem.foundation : {};
+  const foundationTypography = isRecord(designFoundation.typography) ? designFoundation.typography : {};
+  const foundationSpacing = isRecord(designFoundation.spacing) ? designFoundation.spacing : {};
+  const foundationLayout = isRecord(designFoundation.layout) ? designFoundation.layout : {};
   const buttonStyles = isRecord(designComponentStyles.buttons) ? designComponentStyles.buttons : {};
   const cardStyles = isRecord(designComponentStyles.cards) ? designComponentStyles.cards : {};
   const animation = isRecord(value.animation) ? value.animation : {};
@@ -1262,6 +1324,7 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   const beam = isRecord(animation.beam) ? animation.beam : {};
   const plasma = isRecord(animation.plasma) ? animation.plasma : {};
   const sections = isRecord(animation.sections) ? animation.sections : {};
+  const motion = isRecord(animation.motion) ? animation.motion : {};
   const aboutSection = isRecord(sections.about) ? sections.about : {};
   const projectsSection = isRecord(sections.projects) ? sections.projects : {};
   const testimonialsSection = isRecord(sections.testimonials) ? sections.testimonials : {};
@@ -2196,6 +2259,74 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
           },
         },
       },
+      foundation: {
+        typography: {
+          eyebrowSizeRem: asBoundedNumber(
+            foundationTypography.eyebrowSizeRem,
+            DEFAULT_SITE_CONFIG.designSystem.foundation.typography.eyebrowSizeRem,
+            0.4,
+            1.4,
+          ),
+          eyebrowWeight: asBoundedNumber(
+            foundationTypography.eyebrowWeight,
+            DEFAULT_SITE_CONFIG.designSystem.foundation.typography.eyebrowWeight,
+            300,
+            900,
+          ),
+          eyebrowLetterSpacingEm: asBoundedNumber(
+            foundationTypography.eyebrowLetterSpacingEm,
+            DEFAULT_SITE_CONFIG.designSystem.foundation.typography.eyebrowLetterSpacingEm,
+            -0.1,
+            0.6,
+          ),
+        },
+        spacing: {
+          sectionPaddingRem: asBoundedNumber(
+            foundationSpacing.sectionPaddingRem,
+            DEFAULT_SITE_CONFIG.designSystem.foundation.spacing.sectionPaddingRem,
+            1,
+            8,
+          ),
+          stackGapRem: asBoundedNumber(
+            foundationSpacing.stackGapRem,
+            DEFAULT_SITE_CONFIG.designSystem.foundation.spacing.stackGapRem,
+            0.4,
+            3,
+          ),
+          gridGapRem: asBoundedNumber(
+            foundationSpacing.gridGapRem,
+            DEFAULT_SITE_CONFIG.designSystem.foundation.spacing.gridGapRem,
+            0.4,
+            3,
+          ),
+          cardPaddingRem: asBoundedNumber(
+            foundationSpacing.cardPaddingRem,
+            DEFAULT_SITE_CONFIG.designSystem.foundation.spacing.cardPaddingRem,
+            0.75,
+            3.5,
+          ),
+        },
+        layout: {
+          contentMaxWidthPx: asBoundedNumber(
+            foundationLayout.contentMaxWidthPx,
+            DEFAULT_SITE_CONFIG.designSystem.foundation.layout.contentMaxWidthPx,
+            960,
+            1920,
+          ),
+          columnGapRem: asBoundedNumber(
+            foundationLayout.columnGapRem,
+            DEFAULT_SITE_CONFIG.designSystem.foundation.layout.columnGapRem,
+            0.5,
+            4,
+          ),
+          maxGridColumns: asBoundedNumber(
+            foundationLayout.maxGridColumns,
+            DEFAULT_SITE_CONFIG.designSystem.foundation.layout.maxGridColumns,
+            6,
+            18,
+          ),
+        },
+      },
     },
     animation: {
       activeCursorAnimation: asCursorAnimationMode(
@@ -2415,6 +2546,45 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
             1.2,
           ),
         },
+      },
+      motion: {
+        durationFastMs: asBoundedNumber(
+          motion.durationFastMs,
+          DEFAULT_SITE_CONFIG.animation.motion.durationFastMs,
+          60,
+          600,
+        ),
+        durationBaseMs: asBoundedNumber(
+          motion.durationBaseMs,
+          DEFAULT_SITE_CONFIG.animation.motion.durationBaseMs,
+          120,
+          900,
+        ),
+        durationSlowMs: asBoundedNumber(
+          motion.durationSlowMs,
+          DEFAULT_SITE_CONFIG.animation.motion.durationSlowMs,
+          180,
+          1600,
+        ),
+        ease: asString(motion.ease, DEFAULT_SITE_CONFIG.animation.motion.ease),
+        staggerMs: asBoundedNumber(
+          motion.staggerMs,
+          DEFAULT_SITE_CONFIG.animation.motion.staggerMs,
+          0,
+          420,
+        ),
+        hoverScale: asBoundedNumber(
+          motion.hoverScale,
+          DEFAULT_SITE_CONFIG.animation.motion.hoverScale,
+          0.9,
+          1.2,
+        ),
+        hoverLiftPx: asBoundedNumber(
+          motion.hoverLiftPx,
+          DEFAULT_SITE_CONFIG.animation.motion.hoverLiftPx,
+          0,
+          18,
+        ),
       },
     },
     cinematicSequence: {
