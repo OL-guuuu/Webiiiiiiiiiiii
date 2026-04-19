@@ -18,6 +18,7 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
   const { siteConfig } = useSiteConfig();
   const { featured, visibility, designSystem } = siteConfig;
   const projectAnimations = siteConfig.animation.sections.projects;
+  const motionSystem = siteConfig.animation.system;
   const projects = useMemo(() => siteConfig.projects.filter((project) => project.visible), [siteConfig.projects]);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,6 +50,9 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
           : projectAnimations.gridDepth === 'linger'
             ? 0.18
             : 0.12;
+      const motionScale =
+        motionSystem.preset === 'snappy' ? 0.82 : motionSystem.preset === 'cinematic' ? 1.25 : 1;
+      const durationScale = Math.max(0.5, Math.min(1.8, motionSystem.intensity)) * motionScale;
       const distance = projectAnimations.cardEntranceStyle === 'tilt' ? 120 : projectAnimations.cardEntranceStyle === 'drift' ? 90 : 70;
       const rotationX = projectAnimations.cardEntranceStyle === 'tilt' ? 14 : projectAnimations.cardEntranceStyle === 'rise' ? 0 : 8;
       const baseDuration =
@@ -57,13 +61,15 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
           : projectAnimations.gridDepth === 'tight'
             ? 1.05
             : 1.25;
+      const resolvedDuration = Math.max(0.28, (motionSystem.durationMs / 1000) * durationScale);
+      const resolvedEase = motionSystem.easing;
 
       if (projectAnimations.enabled) {
         const tl = gsap.timeline({ delay: 0.56 });
         tl.fromTo(
           '.fw-header-text',
           { y: distance * 0.5, opacity: 0, rotationX, transformOrigin: '0% 50% -40' },
-          { y: 0, opacity: 1, rotationX: 0, duration: baseDuration, ease: 'expo.out', stagger: 0.12 },
+          { y: 0, opacity: 1, rotationX: 0, duration: Math.max(baseDuration * 0.6, resolvedDuration), ease: resolvedEase, stagger: 0.12 },
         );
       } else {
         gsap.set('.fw-header-text', { opacity: 1, y: 0, rotationX: 0 });
@@ -92,8 +98,8 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
             scale: 1,
             rotationX: 0,
             rotateY: 0,
-            duration: baseDuration,
-            ease: 'expo.out',
+              duration: Math.max(baseDuration * 0.6, resolvedDuration),
+              ease: resolvedEase,
             scrollTrigger: {
               trigger: el,
               scroller: containerRef.current,
@@ -108,10 +114,10 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
       if (projectAnimations.enabled && (visibility.testimonialsSection || visibility.featuredCtaSection)) {
         gsap.to('.projects-wrapper', {
           x: '42%',
-          opacity: 0,
-          scale: 0.92,
-          duration: 1.2,
-          ease: 'power3.inOut',
+            opacity: 0,
+            scale: 0.92,
+            duration: Math.max(0.4, resolvedDuration),
+            ease: resolvedEase,
           scrollTrigger: {
             trigger: '.next-page-slide',
             scroller: containerRef.current,
@@ -126,8 +132,8 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
           {
             x: '0%',
             opacity: 1,
-            duration: 1.25,
-            ease: 'power4.out',
+            duration: Math.max(0.4, resolvedDuration),
+            ease: resolvedEase,
             scrollTrigger: {
               trigger: '.next-page-slide',
               scroller: containerRef.current,
@@ -158,6 +164,10 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
     projectAnimations.enabled,
     projectAnimations.gridDepth,
     projects.length,
+    motionSystem.durationMs,
+    motionSystem.easing,
+    motionSystem.intensity,
+    motionSystem.preset,
   ]);
 
   const handleBack = () => {

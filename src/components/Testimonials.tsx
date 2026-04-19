@@ -15,6 +15,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
   const testimonials = siteConfig.testimonials.filter((item) => item.visible);
   const dsComponents = siteConfig.designSystem.components;
   const testimonialMotion = siteConfig.animation.sections.testimonials;
+  const motionSystem = siteConfig.animation.system;
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   
@@ -30,7 +31,8 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
   useEffect(() => {
     if (!isActive || testimonials.length <= 1 || !testimonialMotion.enabled) return;
 
-    const intervalMs = Math.max(1500, testimonialMotion.autoPlayMs);
+    const presetScale = motionSystem.preset === 'snappy' ? 0.85 : motionSystem.preset === 'cinematic' ? 1.15 : 1;
+    const intervalMs = Math.max(1500, testimonialMotion.autoPlayMs * presetScale);
     const interval = setInterval(() => {
       if (!isAnimating) {
         const nextIndex = (activeIndex + 1) % testimonials.length;
@@ -39,7 +41,7 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [isActive, isAnimating, activeIndex, testimonials.length, testimonialMotion.autoPlayMs, testimonialMotion.enabled]);
+  }, [activeIndex, isActive, isAnimating, motionSystem.preset, testimonialMotion.autoPlayMs, testimonialMotion.enabled, testimonials.length]);
 
   // Entrance
   useEffect(() => {
@@ -81,21 +83,25 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
     gsap.killTweensOf(contentRef.current);
 
     const transition = testimonialMotion.transitionStyle;
+    const durationScale =
+      Math.max(0.6, Math.min(1.7, motionSystem.intensity)) *
+      (motionSystem.preset === 'snappy' ? 0.8 : motionSystem.preset === 'cinematic' ? 1.2 : 1);
+    const resolvedEase = motionSystem.easing;
     const exitConfig =
       transition === 'slide'
         ? {
             x: -40,
             opacity: 0,
             filter: 'blur(6px)',
-            duration: 0.55,
-            ease: 'power3.in',
+            duration: Math.max(0.2, 0.55 * durationScale),
+            ease: resolvedEase,
           }
         : transition === 'flip'
           ? {
               rotationY: 30,
               opacity: 0,
-              duration: 0.55,
-              ease: 'power2.in',
+              duration: Math.max(0.2, 0.55 * durationScale),
+              ease: resolvedEase,
               transformOrigin: 'center center',
             }
           : {
@@ -104,8 +110,8 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
               filter: 'blur(8px)',
               rotationX: 10,
               transformOrigin: 'center center',
-              duration: 0.7,
-              ease: 'power3.in',
+              duration: Math.max(0.2, 0.7 * durationScale),
+              ease: resolvedEase,
             };
 
     const enterFrom =
@@ -117,13 +123,13 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
 
     const enterTo =
       transition === 'flip'
-        ? { rotationY: 0, opacity: 1, scale: 1, duration: 1.1, ease: 'power3.out' }
+        ? { rotationY: 0, opacity: 1, scale: 1, duration: Math.max(0.3, 1.1 * durationScale), ease: resolvedEase }
         : {
             ...(transition === 'slide' ? { x: 0 } : { y: 0, rotationX: 0 }),
             opacity: 1,
             filter: 'blur(0px)',
-            duration: 1.05,
-            ease: 'power4.out',
+            duration: Math.max(0.3, 1.05 * durationScale),
+            ease: resolvedEase,
           };
 
     const tl = gsap.timeline({

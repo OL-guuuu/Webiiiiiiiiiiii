@@ -187,6 +187,8 @@ export type SiteAboutCardStyle = 'stack' | 'orbit' | 'slide';
 export type SiteProjectCardStyle = 'tilt' | 'drift' | 'rise';
 export type SiteTestimonialTransitionStyle = 'fade' | 'slide' | 'flip';
 export type SiteSkillDisplayMode = 'rain' | 'tiles';
+export type SiteMotionPreset = 'snappy' | 'balanced' | 'cinematic';
+export type SiteMotionEasing = 'power2.out' | 'power3.out' | 'power4.out' | 'expo.out';
 
 export interface SiteAboutAnimationSettings {
   enabled: boolean;
@@ -215,6 +217,13 @@ export interface SiteSectionAnimationConfig {
   about: SiteAboutAnimationSettings;
   projects: SiteProjectsAnimationSettings;
   testimonials: SiteTestimonialsAnimationSettings;
+}
+
+export interface SiteGlobalMotionConfig {
+  preset: SiteMotionPreset;
+  intensity: number;
+  durationMs: number;
+  easing: SiteMotionEasing;
 }
 
 export interface SiteVisibilityConfig {
@@ -441,6 +450,8 @@ export interface SiteConfig {
       headingWeight: number;
       headingLetterSpacingEm: number;
       bodyLineHeight: number;
+      spacingScale: number;
+      radiusScale: number;
       buttonRadius: number;
       buttonBorderWidth: number;
       buttonShadowOpacity: number;
@@ -472,6 +483,7 @@ export interface SiteConfig {
     };
   };
   animation: {
+    system: SiteGlobalMotionConfig;
     activeCursorAnimation: SiteCursorAnimationMode;
     cursor: SiteCursorConfig;
     aura: SiteCursorAuraConfig;
@@ -886,6 +898,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       headingWeight: 610,
       headingLetterSpacingEm: -0.02,
       bodyLineHeight: 1.6,
+      spacingScale: 1,
+      radiusScale: 1,
       buttonRadius: 8,
       buttonBorderWidth: 1,
       buttonShadowOpacity: 0.1,
@@ -985,6 +999,12 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
     },
   },
   animation: {
+    system: {
+      preset: 'balanced',
+      intensity: 1,
+      durationMs: 800,
+      easing: 'power3.out',
+    },
     activeCursorAnimation: 'fluid',
     cursor: {
       DENSITY_DISSIPATION: 2.2,
@@ -1211,6 +1231,18 @@ const asSkillDisplayMode = (value: unknown, fallback: SiteSkillDisplayMode): Sit
     : fallback;
 };
 
+const asMotionPreset = (value: unknown, fallback: SiteMotionPreset): SiteMotionPreset => {
+  return typeof value === 'string' && ['snappy', 'balanced', 'cinematic'].includes(value)
+    ? (value as SiteMotionPreset)
+    : fallback;
+};
+
+const asMotionEasing = (value: unknown, fallback: SiteMotionEasing): SiteMotionEasing => {
+  return typeof value === 'string' && ['power2.out', 'power3.out', 'power4.out', 'expo.out'].includes(value)
+    ? (value as SiteMotionEasing)
+    : fallback;
+};
+
 const asSocialIconKey = (value: unknown, fallback: SiteSocialIconKey): SiteSocialIconKey => {
   return typeof value === 'string' && SITE_SOCIAL_ICON_KEYS.includes(value as SiteSocialIconKey)
     ? (value as SiteSocialIconKey)
@@ -1253,6 +1285,7 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   const buttonStyles = isRecord(designComponentStyles.buttons) ? designComponentStyles.buttons : {};
   const cardStyles = isRecord(designComponentStyles.cards) ? designComponentStyles.cards : {};
   const animation = isRecord(value.animation) ? value.animation : {};
+  const animationSystem = isRecord(animation.system) ? animation.system : {};
   const cursor = isRecord(animation.cursor) ? animation.cursor : {};
   const aura = isRecord(animation.aura) ? animation.aura : {};
   const orbit = isRecord(animation.orbit) ? animation.orbit : {};
@@ -1797,6 +1830,18 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
           1.1,
           2.2,
         ),
+        spacingScale: asBoundedNumber(
+          designTheme.spacingScale,
+          DEFAULT_SITE_CONFIG.designSystem.theme.spacingScale,
+          0.75,
+          1.5,
+        ),
+        radiusScale: asBoundedNumber(
+          designTheme.radiusScale,
+          DEFAULT_SITE_CONFIG.designSystem.theme.radiusScale,
+          0.75,
+          1.6,
+        ),
         buttonRadius: asBoundedNumber(
           designTheme.buttonRadius,
           DEFAULT_SITE_CONFIG.designSystem.theme.buttonRadius,
@@ -2186,6 +2231,12 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
       },
     },
     animation: {
+      system: {
+        preset: asMotionPreset(animationSystem.preset, DEFAULT_SITE_CONFIG.animation.system.preset),
+        intensity: asBoundedNumber(animationSystem.intensity, DEFAULT_SITE_CONFIG.animation.system.intensity, 0.4, 1.8),
+        durationMs: asBoundedNumber(animationSystem.durationMs, DEFAULT_SITE_CONFIG.animation.system.durationMs, 200, 2400),
+        easing: asMotionEasing(animationSystem.easing, DEFAULT_SITE_CONFIG.animation.system.easing),
+      },
       activeCursorAnimation: asCursorAnimationMode(
         animation.activeCursorAnimation,
         DEFAULT_SITE_CONFIG.animation.activeCursorAnimation,

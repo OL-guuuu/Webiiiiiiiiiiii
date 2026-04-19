@@ -52,6 +52,8 @@ const applyDesignSystemVariables = (siteConfig: SiteConfig) => {
   root.style.setProperty('--ds-heading-weight', String(theme.headingWeight));
   root.style.setProperty('--ds-heading-letter-spacing-em', `${theme.headingLetterSpacingEm}em`);
   root.style.setProperty('--ds-body-line-height', String(theme.bodyLineHeight));
+  root.style.setProperty('--ds-spacing-scale', String(theme.spacingScale));
+  root.style.setProperty('--ds-radius-scale', String(theme.radiusScale));
   root.style.setProperty('--ds-button-radius', `${theme.buttonRadius}px`);
   root.style.setProperty('--ds-button-border-width', `${theme.buttonBorderWidth}px`);
   root.style.setProperty('--ds-button-shadow-opacity', String(theme.buttonShadowOpacity));
@@ -61,6 +63,21 @@ const applyDesignSystemVariables = (siteConfig: SiteConfig) => {
   root.style.setProperty('--ds-card-shadow-opacity', String(theme.cardShadowOpacity));
   root.style.setProperty('--ds-glass-tint', theme.glassTintColor);
   root.style.setProperty('--ds-glass-border', theme.glassBorderColor);
+  root.style.setProperty('--ds-space-1', `${4 * theme.spacingScale}px`);
+  root.style.setProperty('--ds-space-2', `${8 * theme.spacingScale}px`);
+  root.style.setProperty('--ds-space-3', `${12 * theme.spacingScale}px`);
+  root.style.setProperty('--ds-space-4', `${16 * theme.spacingScale}px`);
+  root.style.setProperty('--ds-space-5', `${20 * theme.spacingScale}px`);
+  root.style.setProperty('--ds-space-6', `${24 * theme.spacingScale}px`);
+  root.style.setProperty('--ds-radius-sm', `${8 * theme.radiusScale}px`);
+  root.style.setProperty('--ds-radius-md', `${12 * theme.radiusScale}px`);
+  root.style.setProperty('--ds-radius-lg', `${18 * theme.radiusScale}px`);
+  root.style.setProperty('--ds-radius-pill', `${999 * theme.radiusScale}px`);
+
+  const motion = siteConfig.animation.system;
+  root.style.setProperty('--ds-motion-intensity', String(motion.intensity));
+  root.style.setProperty('--ds-motion-duration-ms', `${motion.durationMs}ms`);
+  root.style.setProperty('--ds-motion-easing', motion.easing);
 
   const buttonVariants = ['button-1', 'button-2', 'button-3'] as const;
   for (const variant of buttonVariants) {

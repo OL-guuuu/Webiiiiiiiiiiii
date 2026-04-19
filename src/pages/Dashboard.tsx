@@ -7,6 +7,13 @@ import {
   getScaledRem,
   type SurfaceTone,
 } from '../components/designSystem';
+import {
+  UIBadge,
+  UIButton,
+  UICard,
+  UIPanel,
+  UISectionHeader,
+} from '../components/ui/SystemPrimitives';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import {
   DEFAULT_SITE_CONFIG,
@@ -152,22 +159,7 @@ const Card: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ title, subtitle, children, className }) => {
-  return (
-    <section
-      className={`relative overflow-hidden rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(18,18,22,0.92),rgba(8,8,11,0.86))] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.28)] backdrop-blur-xl ${
-        className ?? ''
-      }`}
-    >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
-      <div className="mb-4 border-b border-white/8 pb-3">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/95">{title}</h2>
-        {subtitle ? (
-          <p className="mt-1 text-[12px] text-white/52">{subtitle}</p>
-        ) : null}
-      </div>
-      <div className="space-y-3">{children}</div>
-    </section>
-  );
+  return <UICard title={title} subtitle={subtitle} className={className}>{children}</UICard>;
 };
 
 const SectionButton: React.FC<{
@@ -254,7 +246,7 @@ const Input: React.FC<{
             step={stepValue}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="min-w-0 flex-1 rounded-[10px] border border-white/14 bg-[rgba(0,0,0,0.36)] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+            className="ds-input min-w-0 flex-1"
           />
 
           <button
@@ -292,7 +284,7 @@ const Input: React.FC<{
         step={step}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-[10px] border border-white/14 bg-[rgba(0,0,0,0.36)] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+        className="ds-input"
       />
     </label>
   );
@@ -311,7 +303,7 @@ const Textarea: React.FC<{
         rows={rows}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-[10px] border border-white/14 bg-[rgba(0,0,0,0.36)] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+        className="ds-textarea"
       />
     </label>
   );
@@ -329,7 +321,7 @@ const SelectInput: React.FC<{
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-[10px] border border-white/14 bg-[rgba(0,0,0,0.36)] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-white/36 focus:ring-2 focus:ring-white/12"
+        className="ds-select"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -520,8 +512,7 @@ const Toggle: React.FC<{ label: string; checked: boolean; onChange: (checked: bo
   );
 };
 
-const listItemClass =
-  'rounded-[12px] border border-white/12 bg-[rgba(0,0,0,0.3)] p-3 md:p-4 space-y-2.5';
+const listItemClass = 'ds-panel-muted bg-[rgba(0,0,0,0.3)] p-3 md:p-4 space-y-2.5';
 
 export const Dashboard: React.FC = () => {
   const { siteConfig, setSiteConfig, resetSiteConfig } = useSiteConfig();
@@ -530,6 +521,7 @@ export const Dashboard: React.FC = () => {
   const [authError, setAuthError] = useState('');
   const [activeWorkspace, setActiveWorkspace] = useState<DashboardWorkspace>('settings');
   const [activeSection, setActiveSection] = useState<DashboardSectionId>('sequence');
+  const [sectionQuery, setSectionQuery] = useState('');
   const [publishingPanel, setPublishingPanel] = useState<'articles' | 'videos' | 'page'>('articles');
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadError, setUploadError] = useState('');
@@ -867,6 +859,22 @@ export const Dashboard: React.FC = () => {
     }));
   };
 
+  const updateMotionSystem = <K extends keyof SiteConfig['animation']['system']>(
+    key: K,
+    value: SiteConfig['animation']['system'][K],
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      animation: {
+        ...prev.animation,
+        system: {
+          ...prev.animation.system,
+          [key]: value,
+        },
+      },
+    }));
+  };
+
   const updateVisibility = <K extends keyof SiteConfig['visibility']>(key: K, value: SiteConfig['visibility'][K]) => {
     updateConfig((prev) => ({
       ...prev,
@@ -960,6 +968,18 @@ export const Dashboard: React.FC = () => {
 
   const activeSectionInfo =
     DASHBOARD_SECTIONS.find((section) => section.id === activeSection) ?? DASHBOARD_SECTIONS[0];
+  const filteredSectionGroups = useMemo(() => {
+    const query = sectionQuery.trim().toLowerCase();
+    if (!query) return DASHBOARD_SECTION_GROUPS;
+    return DASHBOARD_SECTION_GROUPS.map((group) => ({
+      ...group,
+      sectionIds: group.sectionIds.filter((sectionId) => {
+        const section = DASHBOARD_SECTIONS.find((entry) => entry.id === sectionId);
+        if (!section) return false;
+        return `${section.label} ${section.hint}`.toLowerCase().includes(query);
+      }),
+    })).filter((group) => group.sectionIds.length > 0);
+  }, [sectionQuery]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -3023,6 +3043,30 @@ export const Dashboard: React.FC = () => {
                     updateDesignTheme('bodyLineHeight', toSafeNumberInRange(next, 1.6, 1.1, 2.2))
                   }
                 />
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    label="Spacing scale"
+                    type="number"
+                    min={0.75}
+                    max={1.5}
+                    step={0.01}
+                    value={siteConfig.designSystem.theme.spacingScale}
+                    onChange={(next) =>
+                      updateDesignTheme('spacingScale', toSafeNumberInRange(next, 1, 0.75, 1.5))
+                    }
+                  />
+                  <Input
+                    label="Radius scale"
+                    type="number"
+                    min={0.75}
+                    max={1.6}
+                    step={0.01}
+                    value={siteConfig.designSystem.theme.radiusScale}
+                    onChange={(next) =>
+                      updateDesignTheme('radiusScale', toSafeNumberInRange(next, 1, 0.75, 1.6))
+                    }
+                  />
+                </div>
               </Card>
             </div>
 
@@ -3477,6 +3521,52 @@ export const Dashboard: React.FC = () => {
         return (
           <div className="grid gap-4 xl:grid-cols-[minmax(0,430px)_minmax(0,1fr)]">
             <Card title="Animation Selector" subtitle="Pick one cursor animation and tune its own properties">
+              <div className="mb-3 grid gap-3 rounded-[12px] border border-white/12 bg-black/25 p-3 sm:grid-cols-2">
+                <SelectInput
+                  label="Global motion preset"
+                  value={siteConfig.animation.system.preset}
+                  options={[
+                    { value: 'snappy', label: 'Snappy' },
+                    { value: 'balanced', label: 'Balanced' },
+                    { value: 'cinematic', label: 'Cinematic' },
+                  ]}
+                  onChange={(next) => updateMotionSystem('preset', next as SiteConfig['animation']['system']['preset'])}
+                />
+                <SelectInput
+                  label="Global easing"
+                  value={siteConfig.animation.system.easing}
+                  options={[
+                    { value: 'power2.out', label: 'Power 2 Out' },
+                    { value: 'power3.out', label: 'Power 3 Out' },
+                    { value: 'power4.out', label: 'Power 4 Out' },
+                    { value: 'expo.out', label: 'Expo Out' },
+                  ]}
+                  onChange={(next) => updateMotionSystem('easing', next as SiteConfig['animation']['system']['easing'])}
+                />
+                <Input
+                  label="Global intensity"
+                  type="number"
+                  min={0.4}
+                  max={1.8}
+                  step={0.05}
+                  value={siteConfig.animation.system.intensity}
+                  onChange={(next) =>
+                    updateMotionSystem('intensity', toSafeNumberInRange(next, siteConfig.animation.system.intensity, 0.4, 1.8))
+                  }
+                />
+                <Input
+                  label="Global duration (ms)"
+                  type="number"
+                  min={200}
+                  max={2400}
+                  step={20}
+                  value={siteConfig.animation.system.durationMs}
+                  onChange={(next) =>
+                    updateMotionSystem('durationMs', toSafeNumberInRange(next, siteConfig.animation.system.durationMs, 200, 2400))
+                  }
+                />
+              </div>
+
               <div className="grid gap-2 sm:grid-cols-3">
                 {[
                   { id: 'fluid', label: 'Fluid', hint: 'WebGL liquid motion' },
@@ -4989,7 +5079,7 @@ export const Dashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveWorkspace('settings')}
-                className={`rounded-[11px] border px-3 py-2 text-left transition-all ${
+                className={`ds-panel-muted text-left transition-all ${
                   activeWorkspace === 'settings'
                     ? 'border-white/35 bg-white/15 text-white'
                     : 'border-white/14 bg-black/25 text-white/72 hover:bg-white/10'
@@ -5001,7 +5091,7 @@ export const Dashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveWorkspace('publishing')}
-                className={`rounded-[11px] border px-3 py-2 text-left transition-all ${
+                className={`ds-panel-muted text-left transition-all ${
                   activeWorkspace === 'publishing'
                     ? 'border-white/35 bg-white/15 text-white'
                     : 'border-white/14 bg-black/25 text-white/72 hover:bg-white/10'
@@ -5013,21 +5103,21 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
+              <UIBadge>
                 Projects: {stats.projects}
-              </span>
-              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
+              </UIBadge>
+              <UIBadge>
                 Testimonials: {stats.testimonials}
-              </span>
-              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
+              </UIBadge>
+              <UIBadge>
                 Nav items: {stats.navItems}
-              </span>
-              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
+              </UIBadge>
+              <UIBadge>
                 Articles: {stats.articles}
-              </span>
-              <span className="rounded-[999px] border border-white/15 bg-black/30 px-2.5 py-1 text-[11px] text-white/72">
+              </UIBadge>
+              <UIBadge>
                 Videos: {stats.videos}
-              </span>
+              </UIBadge>
               <span
                 className={`rounded-[999px] border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ${
                   hasUnsavedChanges
@@ -5041,38 +5131,43 @@ export const Dashboard: React.FC = () => {
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <button
-              type="button"
+            <UIButton
+              variant="button-1"
+              tone="dark"
+              size="sm"
               onClick={handleSaveChanges}
-              className={`${getButtonClass('button-1', 'dark', 'sm')} ${
+              className={
                 hasUnsavedChanges
                   ? 'border-amber-300/45 text-amber-100 shadow-[0_10px_24px_rgba(245,158,11,0.16)]'
                   : 'opacity-85 hover:opacity-100'
-              }`}
+              }
             >
               Save Changes
-            </button>
-            <button type="button" onClick={handleOpenSite} className={getButtonClass('button-2', 'dark', 'sm')}>
+            </UIButton>
+            <UIButton variant="button-2" tone="dark" size="sm" onClick={handleOpenSite}>
               Open Site
-            </button>
-            <button
-              type="button"
+            </UIButton>
+            <UIButton
+              variant="button-3"
+              tone="dark"
+              size="sm"
               onClick={() => {
                 resetSiteConfig();
                 clearUploadFeedback();
                 setHasUnsavedChanges(false);
               }}
-              className={getButtonClass('button-3', 'dark', 'sm')}
             >
               Reset Defaults
-            </button>
-            <button
-              type="button"
+            </UIButton>
+            <UIButton
+              variant="button-2"
+              tone="dark"
+              size="sm"
               onClick={handleLogout}
-              className={`${getButtonClass('button-2', 'dark', 'sm')} border-red-300/45 text-red-200 hover:bg-red-500/10`}
+              className="border-red-300/45 text-red-200 hover:bg-red-500/10"
             >
               Logout
-            </button>
+            </UIButton>
           </div>
         </div>
       </header>
@@ -5085,8 +5180,11 @@ export const Dashboard: React.FC = () => {
                 <p className="px-1 font-mono text-[10px] uppercase tracking-[0.16em] text-white/62">
                   Dashboard Sections
                 </p>
+                <div className="mt-3">
+                  <Input label="Filter sections" value={sectionQuery} onChange={setSectionQuery} />
+                </div>
                 <div className="mt-3 space-y-3">
-                  {DASHBOARD_SECTION_GROUPS.map((group) => (
+                  {filteredSectionGroups.map((group) => (
                     <div key={group.id} className="space-y-2">
                       <p className="px-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/48">
                         {group.label}
@@ -5113,11 +5211,11 @@ export const Dashboard: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="mt-3 rounded-[12px] border border-white/10 bg-black/30 px-3 py-3">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/75">Current Section</p>
+                <UIPanel className="mt-3 bg-black/30 px-3 py-3">
+                  <UISectionHeader title="Current Section" />
                   <p className="mt-1 text-sm text-white/90">{activeSectionInfo.label}</p>
                   <p className="mt-1 text-xs text-white/58">{activeSectionInfo.hint}</p>
-                </div>
+                </UIPanel>
               </div>
             </aside>
 

@@ -11,6 +11,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
   const { siteConfig } = useSiteConfig();
   const { scene05 } = siteConfig;
   const aboutMotion = siteConfig.animation.sections.about;
+  const motionSystem = siteConfig.animation.system;
 
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [smoothProgress, setSmoothProgress] = useState(progress);
@@ -32,7 +33,9 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
 
     const step = () => {
       setSmoothProgress((prev) => {
-        const next = clamp01(prev + (progress - prev) * 0.18);
+        const smoothingBase = motionSystem.preset === 'snappy' ? 0.26 : motionSystem.preset === 'cinematic' ? 0.14 : 0.18;
+        const smoothing = Math.max(0.08, Math.min(0.42, smoothingBase / Math.max(0.5, motionSystem.intensity)));
+        const next = clamp01(prev + (progress - prev) * smoothing);
         if (!active) return prev;
         if (Math.abs(next - progress) < 0.0004) return progress;
         frame = requestAnimationFrame(step);
@@ -46,7 +49,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
       active = false;
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [progress]);
+  }, [motionSystem.intensity, motionSystem.preset, progress]);
 
   const statements = useMemo(() => {
     const narrative = [scene05.visionText, ...scene05.storyParagraphs];
@@ -89,6 +92,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
   };
 
   const localProgress = smoothProgress;
+  const fadeScalar = motionSystem.preset === 'snappy' ? 0.85 : motionSystem.preset === 'cinematic' ? 1.2 : 1;
   const textFade = rhythmValue(aboutMotion.textRhythm, 0.06);
   const certificationFade = rhythmValue(aboutMotion.certificationRhythm, 0.06);
 
@@ -221,12 +225,12 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
 
   const renderStatementTransform = (p: number, start: number, end: number) => {
     if (aboutMotion.textSequenceStyle === 'slice') {
-      return `${getTransformDirectional(p, start, end, 'left', textFade)} skewY(${(1 - clamp01((p - start) / (end - start))) * 4 - 2}deg)`;
+      return `${getTransformDirectional(p, start, end, 'left', textFade * fadeScalar)} skewY(${(1 - clamp01((p - start) / (end - start))) * 4 - 2}deg)`;
     }
     if (aboutMotion.textSequenceStyle === 'typewriter') {
-      return getTransformDirectional(p, start, end, 'letter-spacing', textFade);
+      return getTransformDirectional(p, start, end, 'letter-spacing', textFade * fadeScalar);
     }
-    return getTransformDirectional(p, start, end, 'cinematic-text', textFade);
+    return getTransformDirectional(p, start, end, 'cinematic-text', textFade * fadeScalar);
   };
 
   const backgroundOpacity = calcOpacity(localProgress, -0.05, 0.2, 0.12) + calcOpacity(localProgress, 0.6, 1, 0.2) * 0.4;
