@@ -90,6 +90,28 @@ export interface SiteArticle {
   videoUrl: string;
 }
 
+export type SiteMessageStatus = 'new' | 'read' | 'archived';
+
+export interface SiteInboxMessage {
+  id: string;
+  senderName: string;
+  companyName: string;
+  email: string;
+  subject: string;
+  message: string;
+  receivedAt: string;
+  status: SiteMessageStatus;
+  source: string;
+}
+
+export interface SiteDashboardTopChannel {
+  id: string;
+  label: string;
+  sessions: number;
+  conversionRate: number;
+  trendPct: number;
+}
+
 export interface SiteVideoItem {
   id: string;
   title: string;
@@ -250,6 +272,7 @@ export interface SiteCinematicScrollConfig {
   momentumDamping: number;
   touchMultiplier: number;
   keyboardStep: number;
+  inputCooldownMs: number;
 }
 
 export interface SiteCinematicSequenceConfig {
@@ -457,6 +480,29 @@ export interface SiteConfig {
   };
   articles: SiteArticle[];
   videos: SiteVideoItem[];
+  dashboard: {
+    browser: {
+      browserTabTitle: string;
+      faviconUrl: string;
+    };
+    integrations: {
+      apiBaseUrl: string;
+      customDomain: string;
+      googleAnalyticsMeasurementId: string;
+      googleAnalyticsEnabled: boolean;
+    };
+    analytics: {
+      monthlyVisitors: number;
+      conversionRate: number;
+      avgSessionDurationSec: number;
+      topChannels: SiteDashboardTopChannel[];
+    };
+    inbox: {
+      forwardToEmail: string;
+      autoReplyEnabled: boolean;
+      items: SiteInboxMessage[];
+    };
+  };
   designSystem: {
     theme: {
       primaryColor: string;
@@ -904,6 +950,71 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       visible: true,
     },
   ],
+  dashboard: {
+    browser: {
+      browserTabTitle: 'Oussama Lassoued — Product Designer',
+      faviconUrl: '/favicon.ico',
+    },
+    integrations: {
+      apiBaseUrl: 'https://api.example.com',
+      customDomain: 'portfolio.example.com',
+      googleAnalyticsMeasurementId: '',
+      googleAnalyticsEnabled: false,
+    },
+    analytics: {
+      monthlyVisitors: 18420,
+      conversionRate: 3.8,
+      avgSessionDurationSec: 228,
+      topChannels: [
+        { id: 'organic', label: 'Organic Search', sessions: 7420, conversionRate: 4.1, trendPct: 7.2 },
+        { id: 'direct', label: 'Direct', sessions: 4890, conversionRate: 3.4, trendPct: 2.6 },
+        { id: 'social', label: 'Social', sessions: 3610, conversionRate: 2.9, trendPct: -1.4 },
+        { id: 'referral', label: 'Referral', sessions: 2500, conversionRate: 3.1, trendPct: 1.9 },
+      ],
+    },
+    inbox: {
+      forwardToEmail: 'hello@example.com',
+      autoReplyEnabled: true,
+      items: [
+        {
+          id: 'msg-1',
+          senderName: 'Lina Adams',
+          companyName: 'Northstar Labs',
+          email: 'lina@northstarlabs.co',
+          subject: 'New product launch landing page',
+          message:
+            'Hi Oussama, we are preparing a launch in May and need a conversion-focused landing page with strong storytelling.',
+          receivedAt: '2026-04-18T11:15:00.000Z',
+          status: 'new',
+          source: 'website',
+        },
+        {
+          id: 'msg-2',
+          senderName: 'Marco Diaz',
+          companyName: 'Studio M',
+          email: 'marco@studiom.io',
+          subject: 'Design system audit request',
+          message:
+            'Could you review our current design system and propose a cleaner component architecture for scaling?',
+          receivedAt: '2026-04-15T08:42:00.000Z',
+          status: 'read',
+          source: 'website',
+        },
+        {
+          id: 'msg-3',
+          senderName: 'Amira Rahman',
+          companyName: 'Orion Ventures',
+          email: 'amira@orion.vc',
+          subject: 'Portfolio collaboration',
+          message:
+            'We would like to discuss a collaboration for two portfolio companies that need product UX direction.',
+          receivedAt: '2026-04-10T16:25:00.000Z',
+          status: 'archived',
+          source: 'website',
+        },
+      ],
+    },
+  },
   designSystem: {
     theme: {
       primaryColor: '#111217',
@@ -1146,6 +1257,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
       momentumDamping: 0.86,
       touchMultiplier: 1.6,
       keyboardStep: 0.07,
+      inputCooldownMs: 140,
     },
   },
   globalFrame: {
@@ -1332,6 +1444,11 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
   const cinematicScroll = isRecord(cinematicSequence.scroll) ? cinematicSequence.scroll : {};
   const globalFrame = isRecord(value.globalFrame) ? value.globalFrame : {};
   const visibility = isRecord(value.visibility) ? value.visibility : {};
+  const dashboard = isRecord(value.dashboard) ? value.dashboard : {};
+  const dashboardBrowser = isRecord(dashboard.browser) ? dashboard.browser : {};
+  const dashboardIntegrations = isRecord(dashboard.integrations) ? dashboard.integrations : {};
+  const dashboardAnalytics = isRecord(dashboard.analytics) ? dashboard.analytics : {};
+  const dashboardInbox = isRecord(dashboard.inbox) ? dashboard.inbox : {};
 
   const projects = Array.isArray(value.projects)
     ? value.projects
@@ -1558,6 +1675,45 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
         })
         .filter((item): item is SiteVideoItem => !!item)
     : DEFAULT_SITE_CONFIG.videos;
+
+  const dashboardTopChannels = Array.isArray(dashboardAnalytics.topChannels)
+    ? dashboardAnalytics.topChannels
+        .map((item, index) => {
+          if (!isRecord(item)) return null;
+          return {
+            id: asString(item.id, `channel-${index + 1}`),
+            label: asString(item.label, `Channel ${index + 1}`),
+            sessions: asBoundedNumber(item.sessions, 0, 0, 100000000),
+            conversionRate: asBoundedNumber(item.conversionRate, 0, 0, 100),
+            trendPct: asBoundedNumber(item.trendPct, 0, -100, 1000),
+          };
+        })
+        .filter((item): item is SiteDashboardTopChannel => !!item)
+    : DEFAULT_SITE_CONFIG.dashboard.analytics.topChannels;
+
+  const dashboardInboxItems = Array.isArray(dashboardInbox.items)
+    ? dashboardInbox.items
+        .map((item, index) => {
+          if (!isRecord(item)) return null;
+          return {
+            id: asString(item.id, `inbox-${index + 1}`),
+            senderName: asString(item.senderName, ''),
+            companyName: asString(item.companyName, ''),
+            email: asString(item.email, ''),
+            subject: asString(item.subject, ''),
+            message: asString(item.message, ''),
+            receivedAt: asString(item.receivedAt, new Date().toISOString()),
+            status:
+              asString(item.status, 'new') === 'archived'
+                ? 'archived'
+                : asString(item.status, 'new') === 'read'
+                  ? 'read'
+                  : 'new',
+            source: asString(item.source, 'website'),
+          };
+        })
+        .filter((item): item is SiteInboxMessage => !!item)
+    : DEFAULT_SITE_CONFIG.dashboard.inbox.items;
 
   const skills = Array.isArray(scene05.skills)
     ? scene05.skills.map((item) => asString(item, '')).filter(Boolean)
@@ -1815,6 +1971,74 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
     },
     articles: articles.length > 0 ? articles : DEFAULT_SITE_CONFIG.articles,
     videos: videos.length > 0 ? videos : DEFAULT_SITE_CONFIG.videos,
+    dashboard: {
+      browser: {
+        browserTabTitle: asString(
+          dashboardBrowser.browserTabTitle,
+          DEFAULT_SITE_CONFIG.dashboard.browser.browserTabTitle,
+        ),
+        faviconUrl: asString(
+          dashboardBrowser.faviconUrl,
+          DEFAULT_SITE_CONFIG.dashboard.browser.faviconUrl,
+        ),
+      },
+      integrations: {
+        apiBaseUrl: asString(
+          dashboardIntegrations.apiBaseUrl,
+          DEFAULT_SITE_CONFIG.dashboard.integrations.apiBaseUrl,
+        ),
+        customDomain: asString(
+          dashboardIntegrations.customDomain,
+          DEFAULT_SITE_CONFIG.dashboard.integrations.customDomain,
+        ),
+        googleAnalyticsMeasurementId: asString(
+          dashboardIntegrations.googleAnalyticsMeasurementId,
+          DEFAULT_SITE_CONFIG.dashboard.integrations.googleAnalyticsMeasurementId,
+        ),
+        googleAnalyticsEnabled: asBoolean(
+          dashboardIntegrations.googleAnalyticsEnabled,
+          DEFAULT_SITE_CONFIG.dashboard.integrations.googleAnalyticsEnabled,
+        ),
+      },
+      analytics: {
+        monthlyVisitors: asBoundedNumber(
+          dashboardAnalytics.monthlyVisitors,
+          DEFAULT_SITE_CONFIG.dashboard.analytics.monthlyVisitors,
+          0,
+          100000000,
+        ),
+        conversionRate: asBoundedNumber(
+          dashboardAnalytics.conversionRate,
+          DEFAULT_SITE_CONFIG.dashboard.analytics.conversionRate,
+          0,
+          100,
+        ),
+        avgSessionDurationSec: asBoundedNumber(
+          dashboardAnalytics.avgSessionDurationSec,
+          DEFAULT_SITE_CONFIG.dashboard.analytics.avgSessionDurationSec,
+          0,
+          7200,
+        ),
+        topChannels:
+          dashboardTopChannels.length > 0
+            ? dashboardTopChannels
+            : DEFAULT_SITE_CONFIG.dashboard.analytics.topChannels,
+      },
+      inbox: {
+        forwardToEmail: asString(
+          dashboardInbox.forwardToEmail,
+          DEFAULT_SITE_CONFIG.dashboard.inbox.forwardToEmail,
+        ),
+        autoReplyEnabled: asBoolean(
+          dashboardInbox.autoReplyEnabled,
+          DEFAULT_SITE_CONFIG.dashboard.inbox.autoReplyEnabled,
+        ),
+        items:
+          dashboardInboxItems.length > 0
+            ? dashboardInboxItems
+            : DEFAULT_SITE_CONFIG.dashboard.inbox.items,
+      },
+    },
     designSystem: {
       theme: {
         primaryColor: asString(designTheme.primaryColor, DEFAULT_SITE_CONFIG.designSystem.theme.primaryColor),
@@ -2634,6 +2858,12 @@ export const hydrateSiteConfig = (value: unknown): SiteConfig => {
           DEFAULT_SITE_CONFIG.cinematicSequence.scroll.keyboardStep,
           0.02,
           0.2,
+        ),
+        inputCooldownMs: asBoundedNumber(
+          cinematicScroll.inputCooldownMs,
+          DEFAULT_SITE_CONFIG.cinematicSequence.scroll.inputCooldownMs,
+          0,
+          2000,
         ),
       },
     },
