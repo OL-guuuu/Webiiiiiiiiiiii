@@ -449,6 +449,52 @@ const VariantPickerTitle: React.FC<{ label: string; tone: SurfaceTone }> = ({ la
     </p>
   );
 };
+
+const ButtonVariantPicker: React.FC<{
+  label: string;
+  value: SiteButtonVariant;
+  onChange: (variant: SiteButtonVariant) => void;
+  sampleText?: string;
+  tone?: SurfaceTone;
+}> = ({ label, value, onChange, sampleText = 'Button', tone = 'dark' }) => {
+  const wrapperToneClass = tone === 'dark' ? 'bg-black/20 border-white/12' : 'bg-white/75 border-black/10';
+  const textToneClass = tone === 'dark' ? 'text-white/70' : 'text-black/65';
+
+  return (
+    <div className="space-y-2">
+      <VariantPickerTitle label={label} tone={tone} />
+      <div className={`grid gap-2 rounded-[12px] border p-2 ${wrapperToneClass} sm:grid-cols-3`}>
+        {SITE_BUTTON_VARIANTS.map((variant) => {
+          const isActive = value === variant;
+          return (
+            <button
+              key={variant}
+              type="button"
+              onClick={() => onChange(variant)}
+              className={`rounded-[12px] p-2 text-left transition-all ${
+                isActive
+                  ? tone === 'dark'
+                    ? 'bg-white/10 ring-1 ring-white/40'
+                    : 'bg-black/5 ring-1 ring-black/30'
+                  : tone === 'dark'
+                    ? 'hover:bg-white/5'
+                    : 'hover:bg-black/5'
+              }`}
+            >
+              <span className={getButtonClass(variant, tone as SurfaceTone, 'sm')}>{sampleText}</span>
+              <span
+                className={`mt-1 block text-center font-mono text-[10px] uppercase tracking-[0.12em] ${textToneClass}`}
+              >
+                {formatVariantLabel(variant)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const CardVariantPicker: React.FC<{
   label: string;
   value: SiteCardVariant;
@@ -5920,7 +5966,6 @@ export const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-
 
 
 
