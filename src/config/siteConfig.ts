@@ -1275,7 +1275,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   visibility: {
     globalFrameOverlay: true,
     cursorAnimation: true,
-    introOverlay: true,
+    introOverlay: false,
     scene05Overlay: true,
     persistentUI: true,
     navigationLogo: true,

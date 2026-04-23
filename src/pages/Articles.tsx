@@ -160,8 +160,7 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
     return filteredArticles.slice(start, start + ARTICLES_PER_PAGE);
   }, [currentPage, filteredArticles]);
 
-  const featuredPageArticle = paginatedArticles[0] ?? null;
-  const remainingPageArticles = featuredPageArticle ? paginatedArticles.slice(1) : [];
+  const pageArticles = paginatedArticles;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -462,22 +461,26 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
                 {articlesPage.latestArticlesLabel}
               </p>
 
-              {paginatedArticles.length > 0 ? (
-                <div className="mt-4 space-y-8">
-                  {featuredPageArticle ? (
+              {pageArticles.length > 0 ? (
+                <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {pageArticles.map((article) => (
                     <a
-                      href={`#/articles/${featuredPageArticle.slug}`}
-                      className="group grid gap-5 overflow-hidden rounded-[20px] border border-[#111217]/10 bg-[linear-gradient(152deg,#ffffff,#eef3fb)] p-4 transition-colors hover:border-[#111217]/22 md:grid-cols-[1.05fr_0.95fr] md:p-5"
+                      key={article.id}
+                      href={`#/articles/${article.slug}`}
+                      className={`${getCardClass(dsComponents.featuredProjectCardVariant, 'light', 'group flex h-full flex-col overflow-hidden p-3 transition-transform duration-300 hover:-translate-y-0.5')} ${getGlassClass(
+                        dsComponents.globalGlassVariant,
+                        'light',
+                      )}`}
                     >
                       <div className="relative overflow-hidden rounded-[14px] border border-[#111217]/12 bg-[#111217]/7">
-                        {featuredPageArticle.coverImage ? (
+                        {article.coverImage ? (
                           <img
-                            src={featuredPageArticle.coverImage}
-                            alt={featuredPageArticle.title}
-                            className="h-full min-h-[220px] w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                            src={article.coverImage}
+                            alt={article.title}
+                            className="h-[200px] w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                           />
                         ) : (
-                          <div className="flex h-full min-h-[220px] items-center justify-center bg-[#e5eaf5]">
+                          <div className="flex h-[200px] items-center justify-center bg-[#e5eaf5]">
                             <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#111217]/58">
                               {articlesPage.noThumbnailLabel}
                             </span>
@@ -485,97 +488,63 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
                         )}
                       </div>
 
-                      <div className="flex min-w-0 flex-col justify-between gap-4 py-1">
-                        <div>
-                          <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#111217]/56">
-                            {articlesPage.featuredArticleLabel}
-                          </p>
-                          <h3 className="mt-2 text-[26px] font-semibold leading-[1.12] tracking-[-0.01em] text-[#111217] sm:text-[30px]">
-                            {featuredPageArticle.title}
-                          </h3>
-                          <p
-                            className="mt-3 max-w-[58ch] text-[15px] text-[#111217]/68"
-                            style={{
-                              lineHeight: 1.62,
-                              display: '-webkit-box',
-                              WebkitLineClamp: 4,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            {featuredPageArticle.excerpt}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[#111217]/62">
-                          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217]/62">
-                            {parseDateLabel(featuredPageArticle.publishedAt)}
+                      <div className="flex min-h-[220px] flex-1 flex-col px-1 pb-1 pt-4">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[#111217]/58">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
+                            {article.category}
                           </span>
                           <span className="h-[3px] w-[3px] rounded-full bg-[#111217]/28" aria-hidden />
-                          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217]/62">
-                            {featuredPageArticle.readingMinutes} {articlesPage.minReadLabel}
+                          <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
+                            {parseDateLabel(article.publishedAt)}
                           </span>
-                          <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217]/72">
+                        </div>
+
+                        <h3
+                          className="mt-3 text-[24px] font-semibold leading-[1.14] tracking-[-0.01em] text-[#111217]"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {article.title}
+                        </h3>
+
+                        <p
+                          className="mt-2 text-[14px] text-[#111217]/68"
+                          style={{
+                            lineHeight: 1.58,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {article.excerpt}
+                        </p>
+
+                        <div className="mt-auto pt-4">
+                          <div className="flex items-center gap-x-2 gap-y-1 text-[#111217]/62">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
+                              {article.readingMinutes} {articlesPage.minReadLabel}
+                            </span>
+                            {article.featured ? (
+                              <>
+                                <span className="h-[3px] w-[3px] rounded-full bg-[#111217]/28" aria-hidden />
+                                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217]/72">
+                                  {articlesPage.featuredArticleLabel}
+                                </span>
+                              </>
+                            ) : null}
+                          </div>
+                          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217]/72">
                             {articlesPage.continueReadingLabel}
-                          </span>
+                          </p>
                         </div>
                       </div>
                     </a>
-                  ) : null}
-
-                  {remainingPageArticles.length > 0 ? (
-                    <div className="divide-y divide-[#111217]/10 border-y border-[#111217]/10">
-                      {remainingPageArticles.map((article) => (
-                        <a
-                          key={article.id}
-                          href={`#/articles/${article.slug}`}
-                          className="group grid gap-4 py-5 transition-colors hover:bg-white/62 sm:grid-cols-[1fr_auto]"
-                        >
-                          <div className="min-w-0 px-1">
-                            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217]/56">
-                              {article.category}
-                            </p>
-                            <h3
-                              className="mt-2 text-[24px] font-semibold leading-[1.14] tracking-[-0.01em] text-[#111217]"
-                              style={{
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                              }}
-                            >
-                              {article.title}
-                            </h3>
-                            <p
-                              className="mt-2 max-w-[64ch] text-[14px] text-[#111217]/67"
-                              style={{
-                                lineHeight: 1.58,
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                              }}
-                            >
-                              {article.excerpt}
-                            </p>
-                            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[#111217]/55">
-                              {parseDateLabel(article.publishedAt)} • {article.readingMinutes} {articlesPage.minReadLabel}
-                            </p>
-                          </div>
-
-                          {article.coverImage ? (
-                            <div className="hidden overflow-hidden rounded-[12px] border border-[#111217]/12 bg-[#111217]/6 sm:block sm:h-[92px] sm:w-[146px]">
-                              <img
-                                src={article.coverImage}
-                                alt={article.title}
-                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                              />
-                            </div>
-                          ) : null}
-                        </a>
-                      ))}
-                    </div>
-                  ) : null}
+                  ))}
                 </div>
               ) : (
                 <div className="mt-4 rounded-[14px] border border-[#111217]/12 bg-white/74 px-5 py-5">
