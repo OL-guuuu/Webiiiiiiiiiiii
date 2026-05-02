@@ -33,14 +33,23 @@ import {
 } from '../config/siteConfig';
 import {
   BarChart3,
+  Bot,
+  BookOpen,
   ExternalLink,
   FileText,
   Globe,
   Inbox,
+  Lock,
   LogOut,
+  Mail,
+  MessageCircle,
+  Newspaper,
+  Palette,
+  Plug,
   RotateCcw,
   Save,
   Settings,
+  TrendingUp,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -66,8 +75,8 @@ type DashboardSectionId =
   | 'animation'
   | 'articlesPage';
 
-type DashboardWorkspace = 'site' | 'articles' | 'settings' | 'analytics' | 'messages';
-type DashboardSettingsPanel = 'browser' | 'integrations' | 'inbox';
+type DashboardWorkspace = 'site' | 'design' | 'settings' | 'publish' | 'stats' | 'messages' | 'private' | 'ai-monitor' | 'email' | 'notebook';
+type DashboardSettingsPanel = 'browser' | 'integrations' | 'security' | 'reports' | 'inbox';
 
 const DASHBOARD_WORKSPACES: Array<{
   id: DashboardWorkspace;
@@ -75,36 +84,16 @@ const DASHBOARD_WORKSPACES: Array<{
   description: string;
   icon: LucideIcon;
 }> = [
-  {
-    id: 'site',
-    label: 'Site Editor',
-    description: 'Edit all website sections, text, images, and visual modules.',
-    icon: Globe,
-  },
-  {
-    id: 'articles',
-    label: 'Articles Studio',
-    description: 'Create, schedule, and publish articles.',
-    icon: FileText,
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    description: 'Manage browser metadata, domain, API, and integrations.',
-    icon: Settings,
-  },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    description: 'Track channel performance, sessions, and conversion health.',
-    icon: BarChart3,
-  },
-  {
-    id: 'messages',
-    label: 'Messages',
-    description: 'Review inbound messages submitted from website visitors.',
-    icon: Inbox,
-  },
+  { id: 'site', label: 'Site Pages', description: 'Edit all website content sections.', icon: Globe },
+  { id: 'design', label: 'Design System', description: 'All design, animation and styling controls.', icon: Palette },
+  { id: 'settings', label: 'Settings', description: 'Manage integrations, domain, and API keys.', icon: Plug },
+  { id: 'publish', label: 'Publishing', description: 'Create, schedule, and publish articles.', icon: Newspaper },
+  { id: 'stats', label: 'Statistics', description: 'Track channel performance and conversions.', icon: TrendingUp },
+  { id: 'messages', label: 'Messages', description: 'Review and manage inbound messages.', icon: MessageCircle },
+  { id: 'private', label: 'Private Space', description: 'Partners, projects, social, and finance.', icon: Lock },
+  { id: 'ai-monitor', label: 'AI Monitor', description: 'AI intelligence and daily briefings.', icon: Bot },
+  { id: 'email', label: 'Email Inbox', description: 'Your connected email inbox.', icon: Mail },
+  { id: 'notebook', label: 'Notebook', description: 'Personal notes and ideas.', icon: BookOpen },
 ];
 
 const DASHBOARD_SETTINGS_PANELS: Array<{
@@ -112,21 +101,11 @@ const DASHBOARD_SETTINGS_PANELS: Array<{
   label: string;
   description: string;
 }> = [
-  {
-    id: 'browser',
-    label: 'Browser Identity',
-    description: 'Tab title and favicon shown in the browser.',
-  },
-  {
-    id: 'integrations',
-    label: 'Integrations',
-    description: 'API endpoint, domain, and analytics keys.',
-  },
-  {
-    id: 'inbox',
-    label: 'Inbox Routing',
-    description: 'Forwarding and auto-reply behavior for new messages.',
-  },
+  { id: 'browser', label: 'Browser Identity', description: 'Tab title and favicon shown in the browser.' },
+  { id: 'integrations', label: 'Integrations', description: 'API endpoint, domain, analytics, and AI keys.' },
+  { id: 'security', label: 'Security', description: 'Monitoring and firewall configuration.' },
+  { id: 'reports', label: 'Technical Reports', description: 'AI-powered site audit reports.' },
+  { id: 'inbox', label: 'Inbox Routing', description: 'Forwarding and auto-reply behavior.' },
 ];
 
 const DASHBOARD_SECTIONS: Array<{ id: DashboardSectionId; label: string; hint: string }> = [
@@ -154,7 +133,7 @@ const DASHBOARD_SECTION_GROUPS: Array<{ id: string; label: string; sectionIds: D
   {
     id: 'system-motion',
     label: 'System Layer',
-    sectionIds: ['visibility', 'sequence', 'designSystem', 'animation'],
+    sectionIds: ['visibility', 'sequence'],
   },
 ];
 
@@ -656,6 +635,22 @@ export const Dashboard: React.FC = () => {
     if (typeof window === 'undefined') return false;
     return window.sessionStorage.getItem(DASHBOARD_AUTH_KEY) === 'ok';
   });
+
+  // Design workspace
+  const [designTab, setDesignTab] = useState<'foundations' | 'components' | 'animation' | 'cinematic'>('foundations');
+  // Private space
+  const [privateTab, setPrivateTab] = useState<'partners' | 'projects' | 'social' | 'finance'>('partners');
+  const [partners, setPartners] = useState<Array<{id: string; company: string; website: string; contact: string; status: 'targeted'|'approached'|'discussion'|'active'|'archived'; notes: string}>>([]);
+  const [clientProjects, setClientProjects] = useState<Array<{id: string; name: string; client: string; budget: number; currency: 'MAD'|'USD'; status: 'planning'|'active'|'completed'|'hold'; startDate: string; endDate: string; notes: string}>>([]);
+  // Notebook
+  const [notes, setNotes] = useState<Array<{id: string; title: string; content: string; updatedAt: string}>>([
+    { id: 'note-1', title: 'Project Ideas', content: 'Some ideas for future projects:\n- Portfolio redesign\n- Mobile app concept\n- Blog platform', updatedAt: new Date().toISOString() },
+    { id: 'note-2', title: 'Meeting Notes', content: 'Client meeting summary:\n- Discussed timeline\n- Budget confirmed\n- Next steps defined', updatedAt: new Date().toISOString() },
+  ]);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>('note-1');
+  // Email workspace
+  const [emailFolder, setEmailFolder] = useState<'inbox' | 'starred' | 'sent' | 'drafts' | 'trash'>('inbox');
+  const [activeEmailId, setActiveEmailId] = useState<string | null>('email-1');
 
   const updateConfig = (updater: (prev: SiteConfig) => SiteConfig) => {
     setSiteConfig((prev) => updater(prev));
@@ -1288,8 +1283,8 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const renderSectionContent = () => {
-    switch (activeSection) {
+  const renderSectionContent = (overrideSectionId?: DashboardSectionId) => {
+    switch (overrideSectionId ?? activeSection) {
       case 'sequence':
         return (
           <div className="grid gap-5 2xl:grid-cols-2">
@@ -5702,18 +5697,724 @@ export const Dashboard: React.FC = () => {
     );
   };
 
+  const renderDesignWorkspace = () => {
+    const designTabs = [
+      { id: 'foundations' as const, label: 'Foundations' },
+      { id: 'components' as const, label: 'Components' },
+      { id: 'animation' as const, label: 'Animation & Cursor' },
+      { id: 'cinematic' as const, label: 'Cinematic & Scroll' },
+    ];
+    const sectionIdForTab: DashboardSectionId =
+      designTab === 'animation' ? 'animation' :
+      designTab === 'cinematic' ? 'sequence' :
+      'designSystem';
+
+    return (
+      <div className="space-y-4">
+        <section className="rounded-[18px] border border-white/12 bg-white/[0.03] p-2">
+          <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/56">Design Sections</p>
+          <div className="flex flex-wrap gap-2">
+            {designTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setDesignTab(tab.id)}
+                className={`rounded-[11px] border px-3 py-2 text-left transition-all ${
+                  designTab === tab.id
+                    ? 'border-[#b6f45b]/45 bg-[#b6f45b]/14 text-white'
+                    : 'border-white/12 bg-white/[0.04] text-white/78 hover:border-white/20 hover:bg-white/[0.08]'
+                }`}
+              >
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em]">{tab.label}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+        <div className="rounded-[20px] border border-white/12 bg-[#0f141c] p-5 md:p-6">
+          {renderSectionContent(sectionIdForTab)}
+        </div>
+      </div>
+    );
+  };
+
+  const renderStatsWorkspace = () => {
+    const channels = siteConfig.dashboard.analytics.topChannels;
+    const maxSessions = Math.max(1, ...channels.map((item) => item.sessions));
+    const trendSeries = Array.from({ length: 14 }, (_, index) => {
+      const wave = Math.sin((index / 13) * Math.PI * 1.8) * 0.18;
+      const growth = index * 0.012;
+      const visitors = Math.max(80, Math.round((siteConfig.dashboard.analytics.monthlyVisitors / 28) * (0.72 + wave + growth)));
+      return { label: `D${index + 1}`, visitors };
+    });
+    const maxTrendVisitors = Math.max(...trendSeries.map((item) => item.visitors));
+    const monthlyVisitors = siteConfig.dashboard.analytics.monthlyVisitors;
+    const conversionRate = siteConfig.dashboard.analytics.conversionRate;
+    const conversions = Math.round((monthlyVisitors * conversionRate) / 100);
+    const engaged = Math.round(monthlyVisitors * 0.42);
+    const qualifiedLeads = Math.max(conversions, Math.round(engaged * 0.24));
+    const funnel = [
+      { id: 'sessions', label: 'Sessions', value: monthlyVisitors },
+      { id: 'engaged', label: 'Engaged Sessions', value: engaged },
+      { id: 'leads', label: 'Qualified Leads', value: qualifiedLeads },
+      { id: 'conversions', label: 'Conversions', value: conversions },
+    ];
+    const maxFunnelValue = Math.max(1, ...funnel.map((item) => item.value));
+
+    return (
+      <div className="grid gap-4">
+        <Card title="KPI Snapshot" subtitle="Current website analytics metrics">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-[12px] border border-white/12 bg-white/[0.04] p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/56">Monthly Visitors</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{monthlyVisitors.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-white/58">Estimated sessions this month</p>
+            </div>
+            <div className="rounded-[12px] border border-white/12 bg-white/[0.04] p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/56">Conversion</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{conversionRate.toFixed(1)}%</p>
+              <p className="mt-1 text-xs text-white/58">Site-wide conversion rate</p>
+            </div>
+            <div className="rounded-[12px] border border-white/12 bg-white/[0.04] p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/56">Avg Session</p>
+              <p className="mt-1 text-2xl font-semibold text-white">
+                {Math.max(0, Math.round(siteConfig.dashboard.analytics.avgSessionDurationSec / 60))}m
+              </p>
+              <p className="mt-1 text-xs text-white/58">Average time on site</p>
+            </div>
+            <div className="rounded-[12px] border border-white/12 bg-white/[0.04] p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/56">Conversions</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{conversions.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-white/58">Projected completed actions</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Traffic Trend (14 Days)" subtitle="Session trend simulation based on current visitor profile">
+          <div className="grid grid-cols-[repeat(14,minmax(0,1fr))] gap-2">
+            {trendSeries.map((point) => (
+              <div key={point.label} className="flex flex-col items-center gap-2">
+                <div className="flex h-[140px] w-full items-end rounded-[8px] bg-white/[0.06] p-1">
+                  <div
+                    className="w-full rounded-[6px] bg-[#b6f45b]"
+                    style={{ height: `${Math.max(8, (point.visitors / maxTrendVisitors) * 100)}%` }}
+                  />
+                </div>
+                <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-white/56">{point.label}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          <Card title="Acquisition Mix" subtitle="Channel distribution and trend direction">
+            <div className="space-y-3">
+              {channels.map((channel) => (
+                <div key={channel.id} className="rounded-[12px] border border-white/12 bg-white/[0.04] p-3">
+                  <div className="flex items-center justify-between gap-2 text-sm text-white">
+                    <span className="font-semibold">{channel.label}</span>
+                    <span>{channel.sessions.toLocaleString()} sessions</span>
+                  </div>
+                  <div className="mt-2 h-2 rounded-full bg-white/10">
+                    <div className="h-2 rounded-full bg-[#b6f45b]" style={{ width: `${Math.max(6, (channel.sessions / maxSessions) * 100)}%` }} />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-2 text-xs text-white/62">
+                    <span>Conv: {channel.conversionRate.toFixed(1)}%</span>
+                    <span className={channel.trendPct >= 0 ? 'text-[#86efac]' : 'text-[#fecaca]'}>
+                      Trend {channel.trendPct >= 0 ? '+' : ''}{channel.trendPct.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card title="Conversion Funnel" subtitle="How traffic narrows down to completed conversions">
+            <div className="space-y-3">
+              {funnel.map((stage) => (
+                <div key={stage.id} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2 text-sm text-white">
+                    <span>{stage.label}</span>
+                    <span className="font-semibold">{stage.value.toLocaleString()}</span>
+                  </div>
+                  <div className="h-3 rounded-full bg-white/10">
+                    <div className="h-3 rounded-full bg-[#f59e0b]" style={{ width: `${Math.max(8, (stage.value / maxFunnelValue) * 100)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        <Card title="AI Reports" subtitle="AI-powered progress and project reports">
+          <div className="rounded-[14px] border border-[#b6f45b]/20 bg-[#b6f45b]/8 p-5 text-center">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#d7ff9d]">Coming Soon</p>
+            <p className="mt-2 text-sm text-white/72">AI-powered progress and project reports are coming soon. Reports will analyze your content, traffic, and conversion trends to deliver actionable insights.</p>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
+  const renderPrivateWorkspace = () => {
+    const privateTabs = [
+      { id: 'partners' as const, label: '🤝 Partners' },
+      { id: 'projects' as const, label: '📁 My Projects' },
+      { id: 'social' as const, label: '📱 Social Media' },
+      { id: 'finance' as const, label: '💰 Finance' },
+    ];
+
+    return (
+      <div className="space-y-4">
+        <section className="rounded-[18px] border border-white/12 bg-white/[0.03] p-2">
+          <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/56">Private Sections</p>
+          <div className="flex flex-wrap gap-2">
+            {privateTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setPrivateTab(tab.id)}
+                className={`rounded-[11px] border px-3 py-2 text-left transition-all ${
+                  privateTab === tab.id
+                    ? 'border-[#b6f45b]/45 bg-[#b6f45b]/14 text-white'
+                    : 'border-white/12 bg-white/[0.04] text-white/78 hover:border-white/20 hover:bg-white/[0.08]'
+                }`}
+              >
+                <p className="text-[12px]">{tab.label}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {privateTab === 'partners' && (
+          <Card title="Partners" subtitle="Target companies and potential partnerships">
+            <button
+              type="button"
+              onClick={() => {
+                setPartners((prev) => [...prev, {
+                  id: `partner-${Date.now()}`,
+                  company: 'New Company',
+                  website: '',
+                  contact: '',
+                  status: 'targeted',
+                  notes: '',
+                }]);
+              }}
+              className={dashboardActionButtonSecondaryClass}
+            >
+              Add Partner
+            </button>
+            {partners.length === 0 ? (
+              <p className="text-sm text-white/52">No partners yet. Click "Add Partner" to begin tracking.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-[12px] border border-white/12">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-white/[0.04]">
+                      <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-white/52">Company</th>
+                      <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-white/52">Website</th>
+                      <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-white/52">Contact</th>
+                      <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-white/52">Status</th>
+                      <th className="px-3 py-2 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-white/52">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {partners.map((partner) => (
+                      <tr key={partner.id} className="border-b border-white/8 last:border-b-0">
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            value={partner.company}
+                            onChange={(e) => setPartners((prev) => prev.map((p) => p.id === partner.id ? { ...p, company: e.target.value } : p))}
+                            className="w-full bg-transparent text-white outline-none focus:text-[#b6f45b]"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            value={partner.website}
+                            onChange={(e) => setPartners((prev) => prev.map((p) => p.id === partner.id ? { ...p, website: e.target.value } : p))}
+                            className="w-full bg-transparent text-white/72 outline-none focus:text-white"
+                            placeholder="https://"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            value={partner.contact}
+                            onChange={(e) => setPartners((prev) => prev.map((p) => p.id === partner.id ? { ...p, contact: e.target.value } : p))}
+                            className="w-full bg-transparent text-white/72 outline-none focus:text-white"
+                            placeholder="Name"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <select
+                            value={partner.status}
+                            onChange={(e) => setPartners((prev) => prev.map((p) => p.id === partner.id ? { ...p, status: e.target.value as typeof partner.status } : p))}
+                            className="rounded-[8px] border border-white/14 bg-white/[0.06] px-2 py-1 text-[11px] text-white outline-none"
+                          >
+                            <option value="targeted">Targeted</option>
+                            <option value="approached">Approached</option>
+                            <option value="discussion">In Discussion</option>
+                            <option value="active">Active</option>
+                            <option value="archived">Archived</option>
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            value={partner.notes}
+                            onChange={(e) => setPartners((prev) => prev.map((p) => p.id === partner.id ? { ...p, notes: e.target.value } : p))}
+                            className="w-full bg-transparent text-white/60 outline-none focus:text-white"
+                            placeholder="Notes..."
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {privateTab === 'projects' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/56">Client Projects</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setClientProjects((prev) => [...prev, {
+                    id: `project-${Date.now()}`,
+                    name: 'New Project',
+                    client: '',
+                    budget: 0,
+                    currency: 'MAD',
+                    status: 'planning',
+                    startDate: '',
+                    endDate: '',
+                    notes: '',
+                  }]);
+                }}
+                className={dashboardActionButtonSecondaryClass}
+              >
+                Add Project
+              </button>
+            </div>
+            {clientProjects.length === 0 ? (
+              <Card title="No Projects" subtitle="Click Add Project to start tracking">
+                <p className="text-sm text-white/52">Your client projects will appear here as cards.</p>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {clientProjects.map((proj) => (
+                  <div key={proj.id} className="rounded-[18px] border border-white/12 bg-[linear-gradient(180deg,rgba(18,22,30,0.98),rgba(14,18,24,0.96))] p-4 space-y-3">
+                    <input
+                      type="text"
+                      value={proj.name}
+                      onChange={(e) => setClientProjects((prev) => prev.map((p) => p.id === proj.id ? { ...p, name: e.target.value } : p))}
+                      className="w-full bg-transparent text-base font-semibold text-white outline-none"
+                    />
+                    <div className="grid gap-2">
+                      <input type="text" value={proj.client} placeholder="Client name" onChange={(e) => setClientProjects((prev) => prev.map((p) => p.id === proj.id ? { ...p, client: e.target.value } : p))} className="w-full rounded-[8px] border border-white/10 bg-white/[0.04] px-2 py-1 text-[12px] text-white outline-none" />
+                      <div className="flex gap-2">
+                        <input type="number" value={proj.budget} placeholder="Budget" onChange={(e) => setClientProjects((prev) => prev.map((p) => p.id === proj.id ? { ...p, budget: Number(e.target.value) } : p))} className="flex-1 rounded-[8px] border border-white/10 bg-white/[0.04] px-2 py-1 text-[12px] text-white outline-none" />
+                        <select value={proj.currency} onChange={(e) => setClientProjects((prev) => prev.map((p) => p.id === proj.id ? { ...p, currency: e.target.value as 'MAD'|'USD' } : p))} className="rounded-[8px] border border-white/10 bg-white/[0.06] px-2 py-1 text-[11px] text-white outline-none">
+                          <option value="MAD">MAD</option>
+                          <option value="USD">USD</option>
+                        </select>
+                      </div>
+                      <select value={proj.status} onChange={(e) => setClientProjects((prev) => prev.map((p) => p.id === proj.id ? { ...p, status: e.target.value as typeof proj.status } : p))} className="rounded-[8px] border border-white/10 bg-white/[0.06] px-2 py-1 text-[11px] text-white outline-none">
+                        <option value="planning">Planning</option>
+                        <option value="active">Active</option>
+                        <option value="completed">Completed</option>
+                        <option value="hold">On Hold</option>
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {privateTab === 'social' && (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { label: 'Followers', value: '12.4K', color: 'text-[#86efac]' },
+                { label: 'Engagement', value: '4.2%', color: 'text-[#b6f45b]' },
+                { label: 'Reach', value: '89K', color: 'text-[#93c5fd]' },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-[14px] border border-white/12 bg-white/[0.04] p-4 text-center">
+                  <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-white/56">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            <Card title="Connected Accounts" subtitle="Link your social media platforms">
+              <div className="space-y-2">
+                {['Instagram', 'Twitter/X', 'LinkedIn', 'TikTok', 'YouTube'].map((platform) => (
+                  <div key={platform} className="flex items-center justify-between rounded-[12px] border border-white/10 bg-white/[0.04] px-3 py-2">
+                    <span className="text-sm text-white">{platform}</span>
+                    <button type="button" className="rounded-[8px] border border-white/20 bg-white/[0.08] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-white/78 hover:bg-white/[0.14]">
+                      Connect
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="Create Post" subtitle="Publish to multiple platforms at once">
+              <textarea rows={4} placeholder="Write your post content..." className="w-full rounded-[10px] border border-white/14 bg-white/[0.06] px-3 py-2 text-[13px] text-white outline-none placeholder:text-white/38" />
+              <div className="flex flex-wrap gap-3">
+                {['Instagram', 'Twitter/X', 'LinkedIn', 'TikTok', 'YouTube'].map((platform) => (
+                  <label key={platform} className="flex items-center gap-2 text-sm text-white/72">
+                    <input type="checkbox" className="accent-[#b6f45b]" />
+                    {platform}
+                  </label>
+                ))}
+              </div>
+              <div className="relative inline-block">
+                <button type="button" disabled className="rounded-[10px] border border-white/14 bg-white/[0.06] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/44 cursor-not-allowed">
+                  Post to All
+                </button>
+                <span className="ml-2 rounded-[999px] border border-[#b6f45b]/30 bg-[#b6f45b]/12 px-2 py-0.5 text-[10px] text-[#d7ff9d]">Coming Soon</span>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {privateTab === 'finance' && (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { label: 'Total Income', value: '45,000 MAD', color: 'border-[#22c55e]/35 bg-[#22c55e]/14 text-[#86efac]' },
+                { label: 'Total Expenses', value: '12,300 MAD', color: 'border-[#ef4444]/35 bg-[#ef4444]/14 text-[#fecaca]' },
+                { label: 'Net Savings', value: '32,700 MAD', color: 'border-[#b6f45b]/35 bg-[#b6f45b]/14 text-[#d7ff9d]' },
+              ].map((stat) => (
+                <div key={stat.label} className={`rounded-[14px] border p-4 text-center ${stat.color}`}>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] opacity-80">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <Card title="Income Sources" subtitle="This month">
+                <div className="space-y-2">
+                  {[{ label: 'Freelance', amount: 30000 }, { label: 'Salary', amount: 12000 }, { label: 'Other', amount: 3000 }].map((item) => (
+                    <div key={item.label} className="flex items-center justify-between rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2">
+                      <span className="text-sm text-white">{item.label}</span>
+                      <span className="font-semibold text-[#86efac]">{item.amount.toLocaleString()} MAD</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" className={dashboardActionButtonSecondaryClass}>Add Income</button>
+                </div>
+              </Card>
+
+              <Card title="Expense Categories" subtitle="This month">
+                <div className="space-y-2">
+                  {[{ label: 'Rent', amount: 5000 }, { label: 'Tools & Subscriptions', amount: 2300 }, { label: 'Food', amount: 3000 }, { label: 'Transport', amount: 2000 }].map((item) => (
+                    <div key={item.label} className="flex items-center justify-between rounded-[10px] border border-white/10 bg-white/[0.04] px-3 py-2">
+                      <span className="text-sm text-white">{item.label}</span>
+                      <span className="font-semibold text-[#fecaca]">{item.amount.toLocaleString()} MAD</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" className={dashboardActionButtonSecondaryClass}>Add Expense</button>
+                </div>
+              </Card>
+            </div>
+
+            <Card title="Monthly Overview" subtitle="Income vs Expenses bar chart">
+              <div className="flex items-end gap-3 h-[120px]">
+                {[
+                  { label: 'Income', value: 45000, max: 50000, color: 'bg-[#86efac]' },
+                  { label: 'Expenses', value: 12300, max: 50000, color: 'bg-[#fecaca]' },
+                  { label: 'Savings', value: 32700, max: 50000, color: 'bg-[#b6f45b]' },
+                ].map((bar) => (
+                  <div key={bar.label} className="flex flex-1 flex-col items-center gap-1">
+                    <div className="w-full flex items-end justify-center h-[100px] bg-white/[0.04] rounded-[8px]">
+                      <div className={`w-full rounded-[6px] ${bar.color}`} style={{ height: `${(bar.value / bar.max) * 100}%` }} />
+                    </div>
+                    <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-white/56">{bar.label}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderAiMonitorWorkspace = () => {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-[20px] border border-[#b6f45b]/20 bg-[linear-gradient(135deg,rgba(182,244,91,0.08),rgba(14,18,24,0.98))] p-6 text-center">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#b6f45b]">AI Intelligence Monitor</p>
+          <h2 className="mt-3 text-2xl font-semibold text-white">AI Intelligence Monitor</h2>
+          <p className="mt-2 text-sm text-white/62 max-w-[560px] mx-auto">
+            Your personal AI will track selected topics and deliver daily briefings to help you make better decisions.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            { icon: '📈', name: 'Market Intelligence', desc: 'Track market trends, pricing signals, and emerging opportunities in your sector.' },
+            { icon: '📰', name: 'Industry News', desc: 'Stay ahead with curated industry news filtered for relevance to your work.' },
+            { icon: '🔍', name: 'Competitor Tracking', desc: 'Monitor competitor activity, launches, and positioning changes in real time.' },
+          ].map((topic) => (
+            <div key={topic.name} className="rounded-[18px] border border-white/12 bg-white/[0.04] p-5 space-y-3">
+              <div className="text-3xl">{topic.icon}</div>
+              <div>
+                <p className="font-semibold text-white">{topic.name}</p>
+                <p className="mt-1 text-sm text-white/60">{topic.desc}</p>
+              </div>
+              <span className="inline-flex rounded-[999px] border border-white/16 bg-white/[0.06] px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white/52">
+                Coming Soon
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <Card title="Daily Briefing Preview" subtitle="Sample of what your AI briefings will look like">
+          <div className="rounded-[14px] border border-white/10 bg-black/30 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#b6f45b]">Today's Briefing</span>
+              <span className="rounded-[999px] border border-white/14 bg-white/[0.06] px-2 py-0.5 font-mono text-[9px] text-white/52">Preview</span>
+            </div>
+            <p className="text-sm text-white/70 leading-relaxed">
+              <strong className="text-white">Market:</strong> Design tool market growing 12% YoY. New entrants focusing on AI-assisted workflows. Consider positioning your services around AI integration expertise.
+            </p>
+            <p className="text-sm text-white/70 leading-relaxed">
+              <strong className="text-white">Industry:</strong> 3 major studios announced rebrand projects this week. Client demand for immersive web experiences up 34% from last quarter.
+            </p>
+            <p className="text-[11px] text-white/38 italic">This is a design preview. Real briefings require AI configuration.</p>
+          </div>
+        </Card>
+
+        <div className="text-center">
+          <div className="relative inline-block">
+            <button type="button" disabled className="rounded-[12px] border border-white/14 bg-white/[0.06] px-6 py-3 font-mono text-[10px] uppercase tracking-[0.16em] text-white/44 cursor-not-allowed">
+              Configure Topics
+            </button>
+            <span className="ml-3 rounded-[999px] border border-[#b6f45b]/30 bg-[#b6f45b]/12 px-2 py-0.5 text-[10px] text-[#d7ff9d]">Coming Soon</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEmailWorkspace = () => {
+    const fakeEmails = [
+      { id: 'email-1', from: 'Sarah Johnson', subject: 'Project Proposal Review', preview: "Hi, I've reviewed the proposal and have some feedback...", date: 'Today', starred: true, read: true },
+      { id: 'email-2', from: 'Michael Chen', subject: 'Invoice #2024-089', preview: "Please find attached the invoice for last month's services...", date: 'Yesterday', starred: false, read: false },
+      { id: 'email-3', from: 'Design Weekly', subject: 'Top design trends this week', preview: 'This week in design: AI tools reshaping workflows, new...',date: 'Mon', starred: false, read: true },
+      { id: 'email-4', from: 'Ahmad Karimi', subject: 'Partnership opportunity', preview: "I wanted to reach out about a potential collaboration on...", date: 'Sun', starred: true, read: false },
+      { id: 'email-5', from: 'GitHub', subject: 'New pull request in your repo', preview: 'A new pull request has been opened in your repository...', date: 'Fri', starred: false, read: true },
+    ];
+    const folders = [
+      { id: 'inbox', label: 'Inbox', badge: 3 },
+      { id: 'starred', label: 'Starred', badge: null },
+      { id: 'sent', label: 'Sent', badge: null },
+      { id: 'drafts', label: 'Drafts', badge: null },
+      { id: 'trash', label: 'Trash', badge: null },
+    ];
+    const activeEmail = fakeEmails.find((e) => e.id === activeEmailId) ?? fakeEmails[0];
+
+    return (
+      <div className="space-y-3">
+        <div className="rounded-[12px] border border-[#b6f45b]/20 bg-[#b6f45b]/8 px-4 py-2 text-sm text-[#d7ff9d]">
+          Your email inbox will be connected here. Currently showing design preview.
+        </div>
+        <div className="grid gap-3 xl:grid-cols-[180px_280px_minmax(0,1fr)]">
+          <aside className="rounded-[18px] border border-white/12 bg-white/[0.03] p-3 space-y-1">
+            <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white/52">Folders</p>
+            {folders.map((folder) => (
+              <button
+                key={folder.id}
+                type="button"
+                onClick={() => setEmailFolder(folder.id as typeof emailFolder)}
+                className={`w-full flex items-center justify-between rounded-[10px] px-2 py-2 text-left transition-colors ${
+                  emailFolder === folder.id
+                    ? 'bg-[#b6f45b]/18 text-[#d7ff9d]'
+                    : 'text-white/72 hover:bg-white/[0.08]'
+                }`}
+              >
+                <span className="text-[13px]">{folder.label}</span>
+                {folder.badge ? (
+                  <span className="rounded-full bg-[#b6f45b] px-1.5 py-0.5 font-mono text-[10px] text-[#0a0d11]">{folder.badge}</span>
+                ) : null}
+              </button>
+            ))}
+          </aside>
+
+          <div className="rounded-[18px] border border-white/12 bg-white/[0.03] overflow-hidden">
+            <div className="border-b border-white/10 px-3 py-2">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/56">Inbox</p>
+            </div>
+            {fakeEmails.map((email) => (
+              <button
+                key={email.id}
+                type="button"
+                onClick={() => setActiveEmailId(email.id)}
+                className={`w-full border-b border-white/8 px-3 py-3 text-left transition-colors last:border-0 ${
+                  activeEmailId === email.id ? 'bg-white/[0.1]' : 'hover:bg-white/[0.06]'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <p className={`truncate text-[12px] font-semibold ${email.read ? 'text-white/80' : 'text-white'}`}>{email.from}</p>
+                  <div className="flex items-center gap-1">
+                    {email.starred && <span className="text-[10px] text-yellow-400">★</span>}
+                    <span className="text-[10px] text-white/44">{email.date}</span>
+                  </div>
+                </div>
+                <p className="mt-0.5 truncate text-[11px] text-white/70">{email.subject}</p>
+                <p className="mt-0.5 truncate text-[10px] text-white/44">{email.preview}</p>
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-[18px] border border-white/12 bg-white/[0.03] p-4">
+            {activeEmail ? (
+              <div className="space-y-3">
+                <div className="border-b border-white/10 pb-3">
+                  <h3 className="text-base font-semibold text-white">{activeEmail.subject}</h3>
+                  <p className="mt-1 text-sm text-white/60">From: <span className="text-white/80">{activeEmail.from}</span></p>
+                  <p className="text-[11px] text-white/44">{activeEmail.date}</p>
+                </div>
+                <div className="rounded-[12px] border border-white/10 bg-black/20 p-4 text-sm leading-relaxed text-white/78">
+                  <p>Hi there,</p>
+                  <br />
+                  <p>{activeEmail.preview}</p>
+                  <br />
+                  <p>Looking forward to hearing from you.</p>
+                  <br />
+                  <p className="text-white/60">Best regards,<br />{activeEmail.from}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-white/52">Select an email to read.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderNotebookWorkspace = () => {
+    const activeNote = notes.find((n) => n.id === activeNoteId) ?? notes[0] ?? null;
+    const wordCount = activeNote ? activeNote.content.trim().split(/\s+/).filter(Boolean).length : 0;
+
+    return (
+      <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="space-y-2 self-start">
+          <button
+            type="button"
+            onClick={() => {
+              const newNote = {
+                id: `note-${Date.now()}`,
+                title: 'Untitled Note',
+                content: '',
+                updatedAt: new Date().toISOString(),
+              };
+              setNotes((prev) => [newNote, ...prev]);
+              setActiveNoteId(newNote.id);
+            }}
+            className={`${dashboardActionButtonSecondaryClass} w-full`}
+          >
+            + New Note
+          </button>
+          <div className="space-y-1 rounded-[18px] border border-white/12 bg-white/[0.03] p-2">
+            {notes.map((note) => (
+              <button
+                key={note.id}
+                type="button"
+                onClick={() => setActiveNoteId(note.id)}
+                className={`w-full rounded-[12px] p-2.5 text-left transition-colors ${
+                  activeNoteId === note.id ? 'bg-[#b6f45b]/18 text-white' : 'text-white/72 hover:bg-white/[0.08]'
+                }`}
+              >
+                <p className="truncate text-[13px] font-medium text-white">{note.title || 'Untitled'}</p>
+                <p className="mt-0.5 truncate text-[11px] text-white/50">{note.content.slice(0, 40) || 'Empty note...'}</p>
+                <p className="mt-1 font-mono text-[9px] text-white/36">{new Date(note.updatedAt).toLocaleDateString()}</p>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <section className="space-y-3">
+          {activeNote ? (
+            <>
+              <input
+                type="text"
+                value={activeNote.title}
+                onChange={(e) => {
+                  setNotes((prev) => prev.map((n) => n.id === activeNote.id ? { ...n, title: e.target.value, updatedAt: new Date().toISOString() } : n));
+                }}
+                placeholder="Note title..."
+                className="w-full rounded-[12px] border border-white/14 bg-white/[0.06] px-4 py-2.5 text-lg font-semibold text-white outline-none transition-all focus:border-[#b6f45b]/52 placeholder:text-white/28"
+              />
+              <textarea
+                rows={18}
+                value={activeNote.content}
+                onChange={(e) => {
+                  setNotes((prev) => prev.map((n) => n.id === activeNote.id ? { ...n, content: e.target.value, updatedAt: new Date().toISOString() } : n));
+                }}
+                placeholder="Start writing..."
+                className="w-full rounded-[12px] border border-white/14 bg-white/[0.06] px-4 py-3 text-[13px] text-white outline-none transition-all focus:border-[#b6f45b]/52 placeholder:text-white/28 resize-none leading-relaxed"
+              />
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[10px] text-white/42">{wordCount} words</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNotes((prev) => prev.map((n) => n.id === activeNote.id ? { ...n, updatedAt: new Date().toISOString() } : n));
+                  }}
+                  className={dashboardActionButtonPrimaryClass}
+                >
+                  Save Note
+                </button>
+              </div>
+            </>
+          ) : (
+            <Card title="Notebook" subtitle="No note selected">
+              <p className="text-sm text-white/52">Create a note or select one from the sidebar.</p>
+            </Card>
+          )}
+        </section>
+      </div>
+    );
+  };
+
   const renderWorkspaceContent = () => {
     switch (activeWorkspace) {
       case 'site':
         return renderSiteWorkspace();
-      case 'articles':
+      case 'design':
+        return renderDesignWorkspace();
+      case 'publish':
         return renderArticlesWorkspace();
       case 'settings':
         return renderSettingsWorkspace();
-      case 'analytics':
-        return renderAnalyticsWorkspace();
+      case 'stats':
+        return renderStatsWorkspace();
       case 'messages':
         return renderMessagesWorkspace();
+      case 'private':
+        return renderPrivateWorkspace();
+      case 'ai-monitor':
+        return renderAiMonitorWorkspace();
+      case 'email':
+        return renderEmailWorkspace();
+      case 'notebook':
+        return renderNotebookWorkspace();
       default:
         return null;
     }
