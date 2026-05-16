@@ -9,6 +9,15 @@ const getFrameCountForScene = (sceneName: string): number => {
   return count;
 };
 
+// Helper to check if AVIF is supported
+const supportsAvif = typeof document !== 'undefined' 
+  ? (() => {
+      const canvas = document.createElement('canvas');
+      return canvas.toDataURL('image/avif').startsWith('data:image/avif');
+    })()
+  : false;
+const preferredExt = '.avif';
+
 export const getFramesForScene = (sceneName: string): string[] => {
   const manifestFrames = __FRAME_MANIFEST__?.[sceneName] ?? [];
   if (manifestFrames.length > 0) {
@@ -18,11 +27,11 @@ export const getFramesForScene = (sceneName: string): string[] => {
   const count = getFrameCountForScene(sceneName);
   const generatedFrames = Array.from({ length: count }, (_, index) => {
     const paddedIndex = (index + 1).toString().padStart(3, '0');
-    return `/frames/${sceneName}/ezgif-frame-${paddedIndex}.jpg`;
+    return `/frames/${sceneName}/ezgif-frame-${paddedIndex}${preferredExt}`;
   });
 
   if (generatedFrames.length === 0) {
-    console.warn(`[Frames] No JPG frames detected for scene "${sceneName}".`);
+    console.warn(`[Frames] No AVIF frames detected for scene "${sceneName}".`);
   }
 
   return generatedFrames;
@@ -55,6 +64,10 @@ export function usePreloadFrames(scenes: string[]) {
       return;
     }
 
+    if (!supportsAvif) {
+      console.warn('[Frames] AVIF is not supported by this browser. Frame images may not render.');
+    }
+
     let mounted = true;
     let loadedCount = 0;
     
@@ -83,52 +96,61 @@ export function usePreloadFrames(scenes: string[]) {
       loadedImagesRecord[scene] = new Array(totalScenesUrls.find(s => s.scene === scene)?.urls.length || 0).fill(null);
     });
 
+    // تحديد المشهد الأول ونصف عدد إطاراته
+    const firstScene = scenes[0];
+    const firstSceneUrls = totalScenesUrls.find(s => s.scene === firstScene)?.urls || [];
+    const firstSceneFrameCount = firstSceneUrls.length;
+    const halfFirstSceneFrames = Math.ceil(firstSceneFrameCount / 2);
+
     const updateProgress = () => {
       if (!mounted) return;
       loadedCount++;
       const currentProgress = Math.floor((loadedCount / totalFrames) * 100);
 
+      // حساب عدد الإطارات المحملة للمشهد الأول
+      const firstSceneLoadedCount = loadedImagesRecord[firstScene]?.filter(img => img !== null).length || 0;
+
       const nextState: PreloadState = {
         progress: currentProgress,
         images: loadedImagesRecord,
-        isComplete: loadedCount === totalFrames
+        // إخفاء التحميل عند تحميل نصف إطارات المشهد الأول أو اكتمال كل الإطارات
+        isComplete: firstSceneLoadedCount >= halfFirstSceneFrames || loadedCount === totalFrames
       };
 
       preloadStateCache.set(scenesKey, nextState);
       setState(nextState);
     };
 
-    // Sequential batched chunk loading to prevent UI freeze and memory spiking
+    // Load scenes in order to reach the opening scene threshold sooner.
     const loadImagesInChunks = async () => {
       const chunkSize = 20;
-      let allLoaders: (() => Promise<void>)[] = [];
 
-      totalScenesUrls.forEach(({ scene, urls }) => {
-        urls.forEach((url, i) => {
-          allLoaders.push(() => new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-              if (!mounted) return resolve();
-              loadedImagesRecord[scene][i] = img;
-              updateProgress();
-              resolve();
-            };
-            img.onerror = () => {
-              console.error(`Failed to load image: ${url}`);
-              updateProgress();
-              resolve();
-            };
-            img.src = url;
-          }));
-        });
-      });
-
-      for (let i = 0; i < allLoaders.length; i += chunkSize) {
+      for (const { scene, urls } of totalScenesUrls) {
         if (!mounted) break;
-        const chunk = allLoaders.slice(i, i + chunkSize);
-        await Promise.all(chunk.map(loader => loader()));
-        // Yield to main thread for a frame
-        await new Promise(r => requestAnimationFrame(r));
+        const sceneLoaders: Array<() => Promise<void>> = urls.map((url, frameIndex) => () => new Promise((resolve) => {
+          const img = new Image();
+          img.decoding = 'async';
+          img.onload = () => {
+            if (!mounted) return resolve();
+            loadedImagesRecord[scene][frameIndex] = img;
+            updateProgress();
+            resolve();
+          };
+          img.onerror = () => {
+            console.error(`Failed to load image: ${url}`);
+            updateProgress();
+            resolve();
+          };
+          img.src = url;
+        }));
+
+        for (let i = 0; i < sceneLoaders.length; i += chunkSize) {
+          if (!mounted) break;
+          const chunk = sceneLoaders.slice(i, i + chunkSize);
+          await Promise.all(chunk.map(loader => loader()));
+          // Yield to main thread for a frame
+          await new Promise(r => requestAnimationFrame(r));
+        }
       }
     };
 

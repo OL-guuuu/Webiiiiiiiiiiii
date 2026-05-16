@@ -79,17 +79,17 @@ const pointerPrototype = (): Pointer => ({
 });
 
 export default function SplashCursor({
-  SIM_RESOLUTION = 128,
-  DYE_RESOLUTION = 1440,
-  CAPTURE_RESOLUTION = 512,
+  SIM_RESOLUTION = 72,
+  DYE_RESOLUTION = 512,
+  CAPTURE_RESOLUTION = 256,
   DENSITY_DISSIPATION = 3.5,
   VELOCITY_DISSIPATION = 2,
   PRESSURE = 0.1,
-  PRESSURE_ITERATIONS = 20,
+  PRESSURE_ITERATIONS = 8,
   CURL = 3,
   SPLAT_RADIUS = 0.2,
   SPLAT_FORCE = 6000,
-  SHADING = true,
+  SHADING = false,
   COLOR_UPDATE_SPEED = 10,
   BACK_COLOR = DEFAULT_BACK_COLOR,
   TRANSPARENT = true,
@@ -1278,6 +1278,27 @@ export default function SplashCursor({
     updateKeywords();
     initFramebuffers();
     resizeCanvas();
+
+    // Visibility-based optimization: pause rendering when not visible
+    let isVisible = true;
+    let isRendering = false;
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible && !isRendering) {
+        isRendering = true;
+        updateFrame();
+      } else if (!isVisible) {
+        isRendering = false;
+        cancelAnimationFrame(animationFrameId);
+      }
+    }, { threshold: 0.1 });
+
+    if (canvas) {
+      observer.observe(canvas);
+    }
+
+    // Explicitly kickstart the render
+    isRendering = true;
     updateFrame();
 
     const getCanvasPosition = (clientX: number, clientY: number) => {

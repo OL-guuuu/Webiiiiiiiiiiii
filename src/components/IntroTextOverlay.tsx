@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSiteConfig } from '../context/SiteConfigContext';
-import { getCardClass, getGlassClass, getScaledRem } from './designSystem';
+import { getScaledRem } from './designSystem';
 
 interface IntroTextOverlayProps {
   hasStarted: boolean;
@@ -11,13 +11,13 @@ export const IntroTextOverlay: React.FC<IntroTextOverlayProps> = ({ hasStarted, 
   const { siteConfig } = useSiteConfig();
   const {
     headingScale,
+    displayTitleSizeRem,
     sectionTitleSizeRem,
     bodyTextSizeRem,
     headingWeight,
     headingLetterSpacingEm,
     bodyLineHeight,
   } = siteConfig.designSystem.theme;
-  const { introCardVariant, globalGlassVariant } = siteConfig.designSystem.components;
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -35,43 +35,76 @@ export const IntroTextOverlay: React.FC<IntroTextOverlayProps> = ({ hasStarted, 
   const initial = 'opacity-0 scale-[0.95] translate-y-[20px] blur-[12px]';
 
   const containerState = isScrolling ? exit : mounted ? enter : initial;
-  const introScale = Math.min(1.12, Math.max(0.82, headingScale * 0.84));
-  const introWeight = Math.min(580, Math.max(360, headingWeight - 110));
-  const introLetterSpacing = Math.max(-0.018, headingLetterSpacingEm + 0.004);
-  const introLineHeight = Math.max(1.45, bodyLineHeight);
+  const primaryText = siteConfig.introText.trim();
+  const scrollPrompt = siteConfig.introScrollPrompt.trim();
+  const backdropColor = siteConfig.introOverlayBackdropColor;
+  const backdropOpacity = mounted && !isScrolling ? siteConfig.introOverlayBackdropOpacity : 0;
+  const headlineBoost = 1.4;
+  const headlineScale = Math.min(1.8, Math.max(1.05, headingScale * headlineBoost));
+  const headlineWeight = Math.min(720, Math.max(420, headingWeight + 60));
+  const headlineLetterSpacing = Math.max(-0.06, headingLetterSpacingEm - 0.015);
+  const headlineLineHeight = Math.max(1.1, bodyLineHeight - 0.35);
+  const promptScale = Math.min(1.05, Math.max(0.8, headingScale * 0.9));
+  const promptLetterSpacing = Math.max(0.08, headingLetterSpacingEm + 0.18);
+  const promptFontSize = `clamp(${getScaledRem(
+    Math.max(bodyTextSizeRem * 0.95, sectionTitleSizeRem * 0.38),
+    promptScale,
+  )}, ${(1.3 * promptScale).toFixed(3)}vw, ${getScaledRem(
+    sectionTitleSizeRem * 0.42,
+    promptScale,
+  )})`;
+  const headlineFontSize = `clamp(${getScaledRem(
+    Math.max(sectionTitleSizeRem * 0.72, bodyTextSizeRem * 1.2),
+    headlineScale,
+  )}, ${(3.5 * headlineScale).toFixed(3)}vw, ${getScaledRem(
+    displayTitleSizeRem * 0.78,
+    headlineScale,
+  )})`;
+  const backdropFill = backdropColor;
 
   return (
-    <div className="fixed inset-0 z-40 pointer-events-none flex flex-col items-center justify-center p-4 sm:p-5 md:p-6" data-surface="text">
-      
-      {/* Glass Floating Window */}
-      <div 
-        className={`${getCardClass(
-          introCardVariant,
-          'dark',
-        )} ${getGlassClass(
-          globalGlassVariant,
-          'dark',
-        )} w-fit max-w-[92vw] sm:max-w-[40rem] p-4 sm:p-5 md:p-7 mx-auto text-center transition-all duration-[1200ms] ease-[cubic-bezier(0.25,1,0.5,1)] ${containerState}`}
+    <div
+      className="fixed inset-0 z-40 pointer-events-none flex flex-col items-center justify-center p-4 sm:p-5 md:p-6"
+      data-surface="text"
+    >
+      <div
+        className="absolute inset-0 transition-opacity duration-[900ms] ease-[cubic-bezier(0.25,1,0.5,1)]"
+        style={{
+          opacity: backdropOpacity,
+          backgroundColor: backdropFill,
+        }}
+      />
+      <div
+        className={`relative z-10 flex flex-col items-center gap-3 text-center sm:gap-4 transition-all duration-[1200ms] ease-[cubic-bezier(0.25,1,0.5,1)] ${containerState}`}
         data-surface="text"
       >
-        <p 
-          className="mx-auto max-w-[33ch] font-sans text-white/92 text-balance"
-          style={{
-            fontSize: `clamp(${getScaledRem(Math.max(bodyTextSizeRem * 1.28, sectionTitleSizeRem * 0.46), introScale)}, ${(
-              2.35 * introScale
-            ).toFixed(
-              3,
-            )}vw, ${getScaledRem(sectionTitleSizeRem * 0.76, introScale)})`,
-            fontWeight: introWeight,
-            letterSpacing: `${introLetterSpacing}em`,
-            lineHeight: introLineHeight,
-            textShadow: '0 2px 10px rgba(0,0,0,0.4)',
-          }}
-        >
-          {siteConfig.introText}
-        </p>
+        {primaryText ? (
+          <h1
+            className="intro-glow-text max-w-[92vw] text-balance font-sans text-white/95 sm:max-w-[28ch]"
+            style={{
+              fontSize: headlineFontSize,
+              fontWeight: headlineWeight,
+              letterSpacing: `${headlineLetterSpacing}em`,
+              lineHeight: headlineLineHeight,
+            }}
+          >
+            {primaryText}
+          </h1>
+        ) : null}
+        {scrollPrompt ? (
+          <p
+            className="intro-glow-text intro-scroll-prompt font-sans text-white/80"
+            style={{
+              fontSize: promptFontSize,
+              fontWeight: Math.min(620, Math.max(480, headingWeight)),
+              letterSpacing: `${promptLetterSpacing}em`,
+              lineHeight: 1.4,
+            }}
+          >
+            {scrollPrompt}
+          </p>
+        ) : null}
       </div>
-
     </div>
   );
 };

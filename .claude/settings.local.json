@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3003)",
+      "Bash(timeout 10 bash -c \"while ! curl -s http://localhost:3004 > /dev/null 2>&1; do sleep 1; done; echo 'Server is ready'\")",
+      "Read(//c//**)",
+      "Bash(sed -i 's/#11161f/#ffffff/g' src/pages/Dashboard.tsx)",
+      "PowerShell(cd \"c:\\\\webiiiiiiiiiiiii\" && \\(Get-Content \"src\\\\pages\\\\Dashboard.tsx\"\\) -replace \"#11161f\", \"#ffffff\" | Set-Content \"src\\\\pages\\\\Dashboard.tsx\")",
+      "Bash(grep -n 'className=\"[^\"]*$' src/pages/Dashboard.tsx)",
+      "Bash(Get-Content \"c:\\\\webiiiiiiiiiiiiiii\\\\src\\\\pages\\\\Dashboard.tsx\")",
+      "Bash(Select-Object -First 200)",
+      "Bash(npx tsc *)",
+      "Bash(grep -n 'className=\".*border border-\\\\[#[0-9a-f]+\\\\]$' src/pages/Dashboard.tsx)",
+      "Bash(grep -n 'className=\".*border border-\\\\[#[0-9a-fA-F]\\\\+\\\\]$\" src/pages/Dashboard.tsx | head -30)",
+      "Bash(timeout 5)",
+      "Bash(timeout 10 bash -c \"while ! curl -s http://localhost:5173 > /dev/null 2>&1; do sleep 1; done; echo 'Server is ready'\")",
+      "Bash(timeout 10 tail -f \"C:\\\\Users\\\\ADMINI~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--webiiiiiiiiiiiiiii\\\\27e9cb47-5fbb-4a4f-a313-3f5753ab6772\\\\tasks\\\\bavuliqk4.output\")"
+    ]
+  }
+}

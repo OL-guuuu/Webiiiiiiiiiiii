@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo, memo } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useSiteConfig } from '../context/SiteConfigContext';
@@ -10,9 +10,12 @@ interface TestimonialsProps {
   isActive?: boolean;
 }
 
-export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) => {
+export const Testimonials: React.FC<TestimonialsProps> = memo(({ isActive = true }) => {
   const { siteConfig } = useSiteConfig();
-  const testimonials = siteConfig.testimonials.filter((item) => item.visible);
+  const testimonials = useMemo(() => 
+    siteConfig.testimonials.filter((item) => item.visible),
+    [siteConfig.testimonials]
+  );
   const dsComponents = siteConfig.designSystem.components;
   const testimonialMotion = siteConfig.animation.sections.testimonials;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -135,7 +138,8 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
     tl.fromTo(contentRef.current, enterFrom, enterTo, '<');
   };
 
-  const activeT = testimonials[activeIndex] ?? testimonials[0];
+  const activeT = useMemo(() => testimonials[activeIndex] ?? testimonials[0], 
+    [testimonials, activeIndex]);
 
   if (!activeT) {
     return null;
@@ -238,4 +242,4 @@ export const Testimonials: React.FC<TestimonialsProps> = ({ isActive = true }) =
       </div>
     </div>
   );
-};
+});

@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, memo } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Testimonials } from './Testimonials';
 import { Footer } from './Footer';
+import { ExperienceMarquee } from './ExperienceMarquee';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { getButtonClass, getCardClass, getGlassClass, getScaledRem } from './designSystem';
 
@@ -14,17 +15,31 @@ interface FeaturedWorkProps {
 
 const isPlaceholderHref = (href: string) => href.trim() === '#';
 
-export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
+export const FeaturedWork: React.FC<FeaturedWorkProps> = memo(({ isActive }) => {
   const { siteConfig } = useSiteConfig();
   const { featured, visibility, designSystem } = siteConfig;
   const projectAnimations = siteConfig.animation.sections.projects;
-  const projects = useMemo(() => siteConfig.projects.filter((project) => project.visible), [siteConfig.projects]);
+  const MAX_VISIBLE_PROJECTS = 4;
+  const [showAllProjects, setShowAllProjects] = React.useState(false);
+  const allProjects = useMemo(() => siteConfig.projects.filter((project) => project.visible), [siteConfig.projects]);
+  const projects = useMemo(() => {
+    return showAllProjects ? allProjects : allProjects.slice(0, MAX_VISIBLE_PROJECTS);
+  }, [allProjects, showAllProjects]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
   const backNavLockUntilRef = useRef(0);
   const pendingSectionRef = useRef<'projects' | 'testimonials' | null>(null);
   const touchStartYRef = useRef<number | null>(null);
+  const navSectionRef = useRef<'projects' | 'testimonials'>('projects');
+  const scrollThrottleRef = useRef(0); // Throttle for scroll events
+  const SCROLL_THROTTLE_MS = 100; // Throttle scroll events to 100ms
+
+  const dispatchNavSection = (next: 'projects' | 'testimonials') => {
+    if (navSectionRef.current === next) return;
+    navSectionRef.current = next;
+    window.dispatchEvent(new CustomEvent('nav-active-section', { detail: { section: next } }));
+  };
 
   const handlePlaceholderLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (isPlaceholderHref(href)) {
@@ -33,16 +48,35 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
   };
 
   useEffect(() => {
+    if (!showAllProjects || !containerRef.current) return;
+
+    const cards = gsap.utils.toArray<HTMLElement>('.fw-reveal', containerRef.current);
+    cards.slice(MAX_VISIBLE_PROJECTS).forEach((card) => {
+      gsap.set(card, { opacity: 1, y: 0, scale: 1, rotationX: 0, rotateY: 0 });
+    });
+    ScrollTrigger.refresh();
+  }, [showAllProjects]);
+
+  // Ref to track if GSAP context has been initialized
+  const gsapContextRef = useRef<gsap.Context | null>(null);
+  const scrollTriggersCreatedRef = useRef(false);
+
+  useEffect(() => {
     if (!isActive || !containerRef.current) return;
 
     const initTimer = window.setTimeout(() => {
       if (containerRef.current) containerRef.current.scrollTop = 0;
       window.dispatchEvent(new CustomEvent('toggle-navbar', { detail: { show: true } }));
+      dispatchNavSection('projects');
     }, 50);
 
     let refreshTimer = 0;
 
-    const ctx = gsap.context(() => {
+    // Only create ScrollTriggers once, then just refresh them
+    if (!scrollTriggersCreatedRef.current) {
+      scrollTriggersCreatedRef.current = true;
+      
+      const ctx = gsap.context(() => {
       const stagger =
         projectAnimations.gridDepth === 'tight'
           ? 0.08
@@ -69,41 +103,50 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
         gsap.set('.fw-header-text', { opacity: 1, y: 0, rotationX: 0 });
       }
 
+      // OPTIMIZED: Use a single ScrollTrigger for the entire grid instead of one per card
       const elements = gsap.utils.toArray<HTMLElement>('.fw-reveal', containerRef.current);
-      elements.forEach((el, index) => {
-        if (!projectAnimations.enabled) {
-          gsap.set(el, { opacity: 1, y: 0, scale: 1, rotationX: 0, rotateY: 0 });
-          return;
-        }
+      
+      if (projectAnimations.enabled && elements.length > 0) {
+        // Create a single timeline with stagger for all cards
+        const cardsTimeline = gsap.timeline({
+          scrollTrigger: {
+            trigger: containerRef.current,
+            scroller: containerRef.current,
+            start: 'top 90%',
+            end: 'bottom 60%',
+            scrub: false,
+            toggleActions: 'play none none reverse',
+          }
+        });
 
-        const startConfig =
-          projectAnimations.cardEntranceStyle === 'tilt'
-            ? { y: distance, opacity: 0, scale: 0.96, rotationX: rotationX + 2, rotateY: index % 2 === 0 ? -8 : 8 }
-            : projectAnimations.cardEntranceStyle === 'drift'
-              ? { y: distance * 0.8, opacity: 0, scale: 0.94, rotationX: rotationX - 2, rotateY: 0 }
-              : { y: distance * 0.6, opacity: 0, scale: 0.97, rotationX: rotationX / 2, rotateY: 0 };
+        elements.forEach((el, index) => {
+          const startConfig =
+            projectAnimations.cardEntranceStyle === 'tilt'
+              ? { y: distance, opacity: 0, scale: 0.96, rotationX: rotationX + 2, rotateY: index % 2 === 0 ? -8 : 8 }
+              : projectAnimations.cardEntranceStyle === 'drift'
+                ? { y: distance * 0.8, opacity: 0, scale: 0.94, rotationX: rotationX - 2, rotateY: 0 }
+                : { y: distance * 0.6, opacity: 0, scale: 0.97, rotationX: rotationX / 2, rotateY: 0 };
 
-        gsap.fromTo(
-          el,
-          startConfig,
-          {
-            y: 0,
-            opacity: 1,
-            scale: 1,
-            rotationX: 0,
-            rotateY: 0,
-            duration: baseDuration,
-            ease: 'expo.out',
-            scrollTrigger: {
-              trigger: el,
-              scroller: containerRef.current,
-              start: 'top 86%',
-              toggleActions: 'play none none reverse',
+          cardsTimeline.fromTo(
+            el,
+            startConfig,
+            {
+              y: 0,
+              opacity: 1,
+              scale: 1,
+              rotationX: 0,
+              rotateY: 0,
+              duration: baseDuration,
+              ease: 'expo.out',
             },
-            stagger,
-          },
-        );
-      });
+            index * stagger // Manual stagger instead of GSAP's stagger
+          );
+        });
+      } else {
+        elements.forEach((el) => {
+          gsap.set(el, { opacity: 1, y: 0, scale: 1, rotationX: 0, rotateY: 0 });
+        });
+      }
 
       if (projectAnimations.enabled && (visibility.testimonialsSection || visibility.featuredCtaSection)) {
         gsap.to('.projects-wrapper', {
@@ -141,24 +184,26 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
       }
 
       refreshTimer = window.setTimeout(() => ScrollTrigger.refresh(), 100);
-    }, containerRef);
+      }, containerRef);
+
+      gsapContextRef.current = ctx;
+    } else {
+      // If context already exists, just refresh ScrollTriggers
+      ScrollTrigger.refresh();
+    }
 
     return () => {
       window.clearTimeout(initTimer);
       window.clearTimeout(refreshTimer);
-      ctx.revert();
+      // Don't revert context on unmount if we want to preserve it
+      // Only revert if isActive is becoming false
+      if (!isActive && gsapContextRef.current) {
+        gsapContextRef.current.revert();
+        scrollTriggersCreatedRef.current = false;
+        gsapContextRef.current = null;
+      }
     };
-  }, [
-    isActive,
-    visibility.featuredCtaSection,
-    visibility.featuredHeader,
-    visibility.featuredProjectsGrid,
-    visibility.testimonialsSection,
-    projectAnimations.cardEntranceStyle,
-    projectAnimations.enabled,
-    projectAnimations.gridDepth,
-    projects.length,
-  ]);
+  }, [isActive]); // Simplified dependencies - only recreate when isActive changes
 
   const handleBack = () => {
     window.dispatchEvent(new CustomEvent('nav-to-section', { detail: { section: 'projects-sequence-end' } }));
@@ -209,7 +254,22 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    // Throttle scroll events to improve performance
+    const now = Date.now();
+    if (now - scrollThrottleRef.current < SCROLL_THROTTLE_MS) {
+      return;
+    }
+    scrollThrottleRef.current = now;
+
     const currentScrollY = e.currentTarget.scrollTop;
+
+    const scroller = containerRef.current;
+    const slide = scroller?.querySelector('.next-page-slide') as HTMLElement | null;
+    if (scroller && slide) {
+      const triggerLine = scroller.scrollTop + scroller.clientHeight * 0.35;
+      const nextSection = triggerLine >= slide.offsetTop ? 'testimonials' : 'projects';
+      dispatchNavSection(nextSection);
+    }
 
     if (currentScrollY > 100) {
       if (currentScrollY > lastScrollY.current + 10) {
@@ -233,6 +293,7 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
       if (section === 'projects') {
         containerRef.current.scrollTo({ top: 0, behavior });
         window.dispatchEvent(new CustomEvent('toggle-navbar', { detail: { show: true } }));
+        dispatchNavSection('projects');
         return;
       }
 
@@ -245,6 +306,7 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
 
       containerRef.current.scrollTo({ top: Math.max(0, targetTop), behavior });
       window.dispatchEvent(new CustomEvent('toggle-navbar', { detail: { show: false } }));
+      dispatchNavSection('testimonials');
     },
     [],
   );
@@ -329,21 +391,19 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
         isActive ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none translate-y-12'
       }`}
     >
-      <div className="projects-wrapper mx-auto w-full max-w-[1600px] origin-right px-6 py-24 md:px-12 md:py-32 lg:px-20">
+      <div className="projects-wrapper site-shell origin-right py-24 md:py-32">
         {visibility.featuredHeader ? (
           <div className="mb-16 flex flex-col gap-9 md:mb-24 md:flex-row md:items-end md:justify-between">
             <h1
               className="fw-header-text opacity-0 text-[#0f1219]"
               style={{
-                fontSize: `clamp(${getScaledRem(siteConfig.designSystem.theme.displayTitleSizeRem * 0.34, siteConfig.designSystem.theme.headingScale)}, 12vw, ${getScaledRem(siteConfig.designSystem.theme.displayTitleSizeRem * 0.86, siteConfig.designSystem.theme.headingScale)})`,
-                lineHeight: 0.92,
-                letterSpacing: `${siteConfig.designSystem.theme.headingLetterSpacingEm}em`,
-                fontWeight: siteConfig.designSystem.theme.headingWeight,
+                fontSize: `clamp(${getScaledRem(siteConfig.designSystem.theme.displayTitleSizeRem * 1.05, siteConfig.designSystem.theme.headingScale)}, 15vw, ${getScaledRem(siteConfig.designSystem.theme.displayTitleSizeRem * 1.9, siteConfig.designSystem.theme.headingScale)})`,
+                lineHeight: 0.9,
+                letterSpacing: `${siteConfig.designSystem.theme.headingLetterSpacingEm - 0.01}em`,
+                fontWeight: Math.min(400, Math.max(300, siteConfig.designSystem.theme.headingWeight - 40)),
               }}
             >
-              {featured.titleLine1}
-              <br />
-              {featured.titleLine2}
+              {featured.titleLine1} {featured.titleLine2}
             </h1>
             <p className="fw-header-text opacity-0 max-w-[360px] font-mono text-[11px] uppercase tracking-[0.16em] text-[#0f1219]/56 md:text-xs md:leading-[1.9]">
               {featured.description}
@@ -368,57 +428,59 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
                   <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(15,18,25,0.02),rgba(15,18,25,0.28))]" />
                 </div>
 
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#0f1219]/56 md:text-[11px]">{project.tags}</p>
-                <h3 className="mt-3 font-sans text-[2.1rem] leading-[0.95] tracking-tight text-[#0f1219] md:text-[2.6rem]">
+                <h3 className="font-sans text-[2.1rem] leading-[0.95] tracking-tight text-[#0f1219] md:text-[2.6rem]">
                   {project.title}
                 </h3>
 
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <a
-                    href={project.behance}
-                    onClick={(e) => handlePlaceholderLinkClick(e, project.behance)}
-                    target={isPlaceholderHref(project.behance) ? undefined : '_blank'}
-                    rel={isPlaceholderHref(project.behance) ? undefined : 'noopener noreferrer'}
-                    className={getButtonClass(
-                      designSystem.components.featuredProjectButtonVariant,
-                      'light',
-                      'sm',
-                      'min-w-[138px] justify-center',
-                    )}
-                  >
-                    {featured.caseStudyLabel}
-                  </a>
-
-                  <a
-                    href={project.live}
-                    onClick={(e) => handlePlaceholderLinkClick(e, project.live)}
-                    target={isPlaceholderHref(project.live) ? undefined : '_blank'}
-                    rel={isPlaceholderHref(project.live) ? undefined : 'noopener noreferrer'}
-                    className={getButtonClass(
-                      designSystem.components.featuredProjectButtonVariant,
-                      'light',
-                      'sm',
-                      'min-w-[138px] justify-center gap-2',
-                    )}
-                  >
-                    <span>{featured.liveLabel}</span>
-                    <span aria-hidden="true">{'->'}</span>
-                  </a>
+                <div className="mt-5 flex items-center gap-3">
+                  {project.buttonType === 'live' ? (
+                    <a
+                      href={project.live}
+                      onClick={(e) => handlePlaceholderLinkClick(e, project.live)}
+                      target={isPlaceholderHref(project.live) ? undefined : '_blank'}
+                      rel={isPlaceholderHref(project.live) ? undefined : 'noopener noreferrer'}
+                      className={getButtonClass(
+                        designSystem.components.featuredProjectButtonVariant,
+                        'light',
+                        'sm',
+                        'min-w-[138px] justify-center gap-2',
+                      )}
+                    >
+                      <span>{featured.liveLabel}</span>
+                      <span aria-hidden="true">{'->'}</span>
+                    </a>
+                  ) : (
+                    <a
+                      href={project.behance}
+                      onClick={(e) => handlePlaceholderLinkClick(e, project.behance)}
+                      target={isPlaceholderHref(project.behance) ? undefined : '_blank'}
+                      rel={isPlaceholderHref(project.behance) ? undefined : 'noopener noreferrer'}
+                      className={getButtonClass(
+                        designSystem.components.featuredProjectButtonVariant,
+                        'light',
+                        'sm',
+                        'min-w-[138px] justify-center',
+                      )}
+                    >
+                      {featured.caseStudyLabel}
+                    </a>
+                  )}
                 </div>
               </article>
             ))}
           </div>
         ) : null}
 
-        {visibility.featuredViewAllButton ? (
+        {visibility.featuredViewAllButton && allProjects.length > MAX_VISIBLE_PROJECTS && !showAllProjects ? (
           <div className="fw-reveal mb-8 mt-16 flex justify-center opacity-0 md:mb-14">
             <button
               type="button"
+              onClick={() => setShowAllProjects(true)}
               className={getButtonClass(
                 designSystem.components.featuredViewAllButtonVariant,
                 'light',
                 'md',
-                'min-w-[220px] justify-center',
+                'min-w-[220px] justify-center transition-all duration-300',
               )}
             >
               {featured.viewAllLabel}
@@ -429,7 +491,9 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
       </div>
 
       <div className="next-page-slide relative z-[250] w-full rounded-t-[8px] bg-white pt-28 pb-0 shadow-[0_-16px_42px_rgba(0,0,0,0.045)] md:pt-32">
-        <div className="mx-auto w-full max-w-[1600px] px-6 md:px-12 lg:px-20">
+        <div className="site-shell">
+          {visibility.experienceMarqueeSection ? <ExperienceMarquee isActive={isActive} /> : null}
+
           {visibility.testimonialsSection ? <Testimonials isActive={isActive} /> : null}
 
           {visibility.featuredCtaSection ? (
@@ -466,4 +530,4 @@ export const FeaturedWork: React.FC<FeaturedWorkProps> = ({ isActive }) => {
       <Footer />
     </div>
   );
-};
+});

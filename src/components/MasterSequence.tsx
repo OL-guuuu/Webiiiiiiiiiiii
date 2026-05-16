@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, memo } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { drawCoverFrame } from '../utils/drawCoverFrame';
@@ -13,6 +13,7 @@ const PHASE_ABOUT_END = 0.74;
 const PHASE_SCENE_07_END = 0.95;
 const SCENE_07_ENTRY_EPSILON = 0.0001;
 const SCENE_07_REVERSE_ENTRY_EPSILON = 0.0012;
+const HOME_REVERSE_ENTRY_EPSILON = 0.0014;
 const TRANSITION_DURATION_SCALE = 0.95;
 const SCENE_07_ACCELERATION_POWER = 0.72;
 
@@ -24,7 +25,7 @@ interface MasterSequenceProps {
   onGlobalProgress?: (progress: number) => void;
 }
 
-export const MasterSequence: React.FC<MasterSequenceProps> = ({ 
+export const MasterSequence: React.FC<MasterSequenceProps> = memo(({ 
   scene02Images, 
   scene03Images, 
   scene07Images,
@@ -36,13 +37,24 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
   const parallaxWrapperRef = useRef<HTMLDivElement>(null);
   const lastDrawableImageRef = useRef<HTMLImageElement | null>(null);
   const { siteConfig } = useSiteConfig();
-  const scrollSettings = siteConfig.cinematicSequence.scroll;
+  const frameConfig = siteConfig.globalFrame;
+  const isInputLockedRef = useRef(isInputLocked);
+  const scrollSettingsRef = useRef(siteConfig.cinematicSequence.scroll);
+  const lastProgressRef = useRef(0);
   
   const onGlobalProgressRef = useRef(onGlobalProgress);
 
   useEffect(() => {
     onGlobalProgressRef.current = onGlobalProgress;
   }, [onGlobalProgress]);
+
+  useEffect(() => {
+    isInputLockedRef.current = isInputLocked;
+  }, [isInputLocked]);
+
+  useEffect(() => {
+    scrollSettingsRef.current = siteConfig.cinematicSequence.scroll;
+  }, [siteConfig.cinematicSequence.scroll]);
 
   const l1 = scene02Images ? scene02Images.length : 0;
   const l2 = scene03Images ? scene03Images.length : 0;
@@ -60,6 +72,22 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
 
     let resizeCallback = 0;
     let lastDrawnIndex = 0;
+    let isVisible = true;
+    let isRendering = false;
+
+    // Visibility-based optimization: pause rendering when not visible
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible && !isRendering) {
+        isRendering = true;
+        // Redraw the last frame when becoming visible
+        drawFrame(lastDrawnIndex);
+      }
+    }, { threshold: 0.1 });
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
 
     const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
     const clampProgress = (value: number) => {
@@ -68,38 +96,62 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
       return clamp(value, 0, 1);
     };
 
+    const getTweenDuration = () => {
+      return Math.max(0.0001, scrollSettingsRef.current.smoothDurationMs / 1000);
+    };
+
+    const getInputCooldownMs = () => {
+      return Math.max(80, scrollSettingsRef.current.inputCooldownMs);
+    };
+
     const getImageAtGlobalIndex = (index: number): HTMLImageElement | undefined => {
       if (index < l1) return scene02Images[index];
       if (index < l1 + l2) return scene03Images[index - l1];
       return scene07Images[index - l1 - l2];
     };
 
+    const isDrawable = (image?: HTMLImageElement | null) => {
+      return !!image && image.complete && image.naturalWidth > 0;
+    };
+
+    const findDrawableIndex = (targetIndex: number) => {
+      const [segmentStart, segmentEnd] = targetIndex >= scene07Start
+        ? [scene07Start, totalLength - 1]
+        : [0, Math.max(preHeroLength - 1, 0)];
+
+      for (let i = targetIndex; i >= segmentStart; i -= 1) {
+        if (isDrawable(getImageAtGlobalIndex(i))) return i;
+      }
+
+      for (let i = targetIndex + 1; i <= segmentEnd; i += 1) {
+        if (isDrawable(getImageAtGlobalIndex(i))) return i;
+      }
+
+      return null;
+    };
+
     const drawFrame = (index: number) => {
       const safeIndex = clamp(index, 0, totalLength - 1);
-      const image = getImageAtGlobalIndex(safeIndex);
-      const drawableImage = image ?? lastDrawableImageRef.current;
-
-      if (!drawableImage) {
-        return;
-      }
-
-      if (drawableImage.complete && drawableImage.naturalWidth > 0) {
-        lastDrawableImageRef.current = drawableImage;
-      }
+      const drawableIndex = findDrawableIndex(safeIndex);
+      if (drawableIndex === null) return;
+      const drawableImage = getImageAtGlobalIndex(drawableIndex);
+      if (!drawableImage) return;
+      lastDrawableImageRef.current = drawableImage;
 
       const { innerWidth, innerHeight } = window;
-      if (canvas.width !== innerWidth || canvas.height !== innerHeight) {
-        canvas.width = innerWidth;
-        canvas.height = innerHeight;
+      // Optimize canvas resolution for better FPS
+      const optimizedWidth = Math.floor(innerWidth * 0.75);
+      const optimizedHeight = Math.floor(innerHeight * 0.75);
+      if (canvas.width !== optimizedWidth || canvas.height !== optimizedHeight) {
+        canvas.width = optimizedWidth;
+        canvas.height = optimizedHeight;
       }
-      
-      const isScene07 = safeIndex >= scene07Start;
 
-      drawCoverFrame(ctx, drawableImage, { 
+      drawCoverFrame(ctx, drawableImage, {
         zoomFactor: 1,
-        objectFit: isScene07 ? 'contain' : 'cover'
+        objectFit: 'cover'
       });
-      lastDrawnIndex = safeIndex;
+      lastDrawnIndex = drawableIndex;
     };
 
     const handleResize = () => {
@@ -107,11 +159,11 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
       resizeCallback = requestAnimationFrame(() => drawFrame(lastDrawnIndex));
     };
 
-    drawFrame(0);
-
-    const playhead = { p: 0 };
+    let virtualProgress = clampProgress(lastProgressRef.current);
+    const playhead = { p: virtualProgress };
     const updatePlayhead = (p: number) => {
       const clampP = clampProgress(p);
+      lastProgressRef.current = clampP;
       let targetIndex = 0;
 
       if (clampP < PHASE_PLAY_SCENE_02_03_END) {
@@ -151,20 +203,24 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
         }
       }
 
-      drawFrame(targetIndex);
-      
+      // Only draw if visible
+      if (isVisible) {
+        drawFrame(targetIndex);
+      }
+
       if (onGlobalProgressRef.current) {
         onGlobalProgressRef.current(clampP);
       }
     };
 
-    let virtualProgress = 0;
+    updatePlayhead(playhead.p);
+
     let momentum = 0;
     let momentumFrame: number | null = null;
     let playheadTween: gsap.core.Tween | null = null;
     const MOMENTUM_CAP = 0.08;
     const MIN_MOMENTUM = 0.000002;
-    const tweenDuration = Math.max(0.0001, scrollSettings.smoothDurationMs / 1000);
+    let navLockUntil = 0;
 
     const stopMomentum = () => {
       if (momentumFrame) {
@@ -180,7 +236,7 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
       playheadTween?.kill();
       playheadTween = gsap.to(playhead, {
         p: clampedP,
-        duration: options?.immediate ? 0.001 : tweenDuration,
+        duration: options?.immediate ? 0.001 : getTweenDuration(),
         ease: 'power2.out',
         overwrite: 'auto',
         onUpdate: () => updatePlayhead(playhead.p),
@@ -190,7 +246,7 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
     const stepMomentum = () => {
       const target = clampProgress(virtualProgress + momentum);
       tweenToProgress(target);
-      momentum *= scrollSettings.momentumDamping;
+      momentum *= scrollSettingsRef.current.momentumDamping;
 
       if (Math.abs(momentum) > MIN_MOMENTUM) {
         momentumFrame = requestAnimationFrame(stepMomentum);
@@ -199,8 +255,47 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
       }
     };
 
+    let lastInputAt = 0;
+    let lastDirection = 0;
+    let lastForwardAt = 0;
+    let lastBackwardAt = 0;
+
     const queueMomentum = (delta: number, multiplier = 1) => {
+      if (Date.now() < navLockUntil) return;
+      if (delta === 0) return;
+      const scrollSettings = scrollSettingsRef.current;
       const limitedDelta = clamp(delta, -scrollSettings.maxWheelDelta, scrollSettings.maxWheelDelta);
+      const now = Date.now();
+      const direction = Math.sign(limitedDelta);
+      const inputCooldownMs = getInputCooldownMs();
+
+      if (
+        direction !== 0 &&
+        lastDirection !== 0 &&
+        direction !== lastDirection &&
+        now - lastInputAt < inputCooldownMs
+      ) {
+        return;
+      }
+
+      if (direction > 0) {
+        lastForwardAt = now;
+      } else if (direction < 0) {
+        lastBackwardAt = now;
+      }
+
+      if (direction < 0 && virtualProgress < 0.08 && now - lastForwardAt < inputCooldownMs * 2) {
+        return;
+      }
+
+      if (direction !== 0 && direction !== lastDirection) {
+        stopMomentum();
+      }
+
+      if (direction !== 0) {
+        lastDirection = direction;
+      }
+      lastInputAt = now;
       const impulse = limitedDelta * scrollSettings.wheelIntensity * multiplier;
       momentum = clamp(momentum + impulse, -MOMENTUM_CAP, MOMENTUM_CAP);
 
@@ -210,10 +305,11 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
     };
 
     const handleWheel = (e: WheelEvent) => {
-      if (isInputLocked) {
+      if (isInputLockedRef.current) {
         stopMomentum();
         return;
       }
+      e.preventDefault();
       queueMomentum(e.deltaY);
     };
 
@@ -221,34 +317,41 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
     const handleTouchStart = (e: TouchEvent) => {
       touchStartY = e.touches[0].clientY;
     };
-    
+
     const handleTouchMove = (e: TouchEvent) => {
-      if (isInputLocked) {
+      if (isInputLockedRef.current) {
         stopMomentum();
         return;
       }
+      e.preventDefault();
       const touchEndY = e.touches[0].clientY;
       const diff = touchStartY - touchEndY;
-      queueMomentum(diff, scrollSettings.touchMultiplier);
-      touchStartY = touchEndY; 
+      queueMomentum(diff, scrollSettingsRef.current.touchMultiplier);
+      touchStartY = touchEndY;
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isInputLocked) {
+      if (isInputLockedRef.current) {
         stopMomentum();
         return;
       }
       if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
-        tweenToProgress(virtualProgress + scrollSettings.keyboardStep);
+        e.preventDefault();
+        tweenToProgress(virtualProgress + scrollSettingsRef.current.keyboardStep);
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-        tweenToProgress(virtualProgress - scrollSettings.keyboardStep);
+        e.preventDefault();
+        tweenToProgress(virtualProgress - scrollSettingsRef.current.keyboardStep);
       }
     };
 
     const handleNavToSection = (e: Event) => {
       const { section } = (e as CustomEvent).detail;
       let target = 0;
+      navLockUntil = Date.now() + getInputCooldownMs();
       if (section === 'home') target = 0;
+      else if (section === 'home-sequence') {
+        target = Math.max(0, PHASE_PLAY_SCENE_02_03_END - HOME_REVERSE_ENTRY_EPSILON);
+      }
       else if (section === 'about') target = PHASE_ABOUT_END;
       else if (section === 'projects-sequence') {
         // Enter scene-07 at its beginning so the sequence plays forward naturally.
@@ -266,9 +369,9 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
       tweenToProgress(target, { immediate: true });
     };
 
-    window.addEventListener('wheel', handleWheel, { passive: true });
+    window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('nav-to-section', handleNavToSection);
 
@@ -284,6 +387,7 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
       cancelAnimationFrame(resizeCallback);
       stopMomentum();
       playheadTween?.kill();
+      observer.disconnect();
     };
   }, [
     l1,
@@ -294,29 +398,42 @@ export const MasterSequence: React.FC<MasterSequenceProps> = ({
     scene03Images,
     scene07Images,
     scene07Start,
-    isInputLocked,
-    scrollSettings,
   ]); 
 
   return (
-    <section 
-      ref={containerRef} 
+    <section
+      ref={containerRef}
       className="relative w-full h-screen overflow-hidden"
       data-surface="hero"
     >
       <div className="absolute inset-0 w-full h-full overflow-hidden bg-black flex items-center justify-center" data-surface="media">
-        <div 
-          ref={parallaxWrapperRef} 
+        <div
+          ref={parallaxWrapperRef}
           className="absolute inset-0 w-full h-full"
           data-surface="media"
         >
-          <canvas 
-            ref={canvasRef} 
-            className="w-full h-full pointer-events-none block"
+          <canvas
+            ref={canvasRef}
+            className="cinematic-canvas w-full h-full pointer-events-none block"
           />
         </div>
         <WebGLFog />
+        {frameConfig.watermarkMaskEnabled && (frameConfig.watermarkMaskMobilePx > 0 || frameConfig.watermarkMaskDesktopPx > 0) ? (
+          <div
+            className="cinematic-watermark-cover pointer-events-none absolute z-[25]"
+            style={{
+              '--watermark-mask-mobile': `${frameConfig.watermarkMaskMobilePx}px`,
+              '--watermark-mask-desktop': `${frameConfig.watermarkMaskDesktopPx}px`,
+              '--watermark-mask-width-mobile': `${frameConfig.watermarkMaskWidthMobilePx}px`,
+              '--watermark-mask-width-desktop': `${frameConfig.watermarkMaskWidthDesktopPx}px`,
+              '--watermark-mask-right-mobile': `${frameConfig.watermarkMaskRightMobilePx}px`,
+              '--watermark-mask-right-desktop': `${frameConfig.watermarkMaskRightDesktopPx}px`,
+              '--watermark-mask-bottom-mobile': `${frameConfig.watermarkMaskBottomMobilePx}px`,
+              '--watermark-mask-bottom-desktop': `${frameConfig.watermarkMaskBottomDesktopPx}px`,
+            } as React.CSSProperties}
+          />
+        ) : null}
       </div>
     </section>
   );
-};
+});

@@ -8,16 +8,16 @@ const joinClasses = (...parts: Array<string | false | null | undefined>) => {
 };
 
 const BUTTON_SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: 'h-10 px-4 text-[10px] tracking-[0.16em]',
-  md: 'h-11 px-6 text-[11px] tracking-[0.18em]',
-  lg: 'h-[52px] px-8 text-[12px] tracking-[0.2em]',
-  icon: 'h-11 w-11 p-0 text-[11px] tracking-normal',
+  sm: 'h-10 px-4 text-[0.875rem] leading-none',
+  md: 'h-11 px-5 text-[0.9375rem] leading-none',
+  lg: 'h-12 px-6 text-[1rem] leading-none',
+  icon: 'h-11 w-11 p-0 text-[1rem] leading-none',
 };
 
 const BUTTON_TONE_CLASSES: Record<SiteButtonVariant, Record<SurfaceTone, string>> = {
   'button-1': {
-    dark: 'ds-btn-v1',
-    light: 'ds-btn-v1',
+    dark: 'ds-btn-v1-dark',
+    light: 'ds-btn-v1-light',
   },
   'button-2': {
     dark: 'ds-btn-v2-dark',

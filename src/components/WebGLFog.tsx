@@ -188,10 +188,10 @@ export const WebGLFog: React.FC = () => {
     window.addEventListener('mousemove', onPointerMove, { passive: true });
 
     const resize = () => {
-      // Massive optimization: render soft fog at half density directly via the canvas pixel surface.
+      // Massive optimization: render soft fog at reduced density directly via the canvas pixel surface.
       // High-DPI screens completely waste GPU cycles rendering blurry volumes.
-      // This cuts fragment calculations by ~75% minimum with zero perceived loss in softness.
-      const dpr = 0.5; // Always rendering smaller than logical pixel space purposefully
+      // This cuts fragment calculations by ~85% minimum with zero perceived loss in softness.
+      const dpr = 0.35; // Further reduced for better FPS
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
       gl.viewport(0, 0, canvas.width, canvas.height);

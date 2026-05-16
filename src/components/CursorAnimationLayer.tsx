@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import type { CSSProperties, RefObject } from 'react';
 import type { SiteConfig } from '../config/siteConfig';
 import SplashCursor from './SplashCursor';
@@ -94,10 +94,31 @@ const AuraCursorLayer: React.FC<AuraCursorLayerProps> = ({
     pointerTarget.addEventListener('pointermove', handlePointerMove as EventListener);
 
     let rafId = 0;
+    let isVisible = true;
+    let isRendering = false;
+
+    // Visibility-based optimization: pause rendering when not visible
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible && !isRendering) {
+        isRendering = true;
+        animate();
+      } else if (!isVisible) {
+        isRendering = false;
+        cancelAnimationFrame(rafId);
+      }
+    }, { threshold: 0.1 });
+
     const animate = () => {
+      if (!isVisible) {
+        isRendering = false;
+        return;
+      }
+      isRendering = true;
+      rafId = requestAnimationFrame(animate);
+
       const blob = blobRef.current;
       if (!blob) {
-        rafId = requestAnimationFrame(animate);
         return;
       }
 
@@ -105,14 +126,22 @@ const AuraCursorLayer: React.FC<AuraCursorLayerProps> = ({
       currentRef.current.y += (targetRef.current.y - currentRef.current.y) * aura.smoothing;
 
       blob.style.transform = `translate3d(${(currentRef.current.x - aura.sizePx * 0.5).toFixed(2)}px, ${(currentRef.current.y - aura.sizePx * 0.5).toFixed(2)}px, 0)`;
-      rafId = requestAnimationFrame(animate);
     };
 
-    rafId = requestAnimationFrame(animate);
+    // Find the container element to observe
+    const container = blobRef.current?.parentElement;
+    if (container) {
+      observer.observe(container);
+    }
+
+    // Explicitly kickstart the render
+    isRendering = true;
+    animate();
 
     return () => {
       pointerTarget.removeEventListener('pointermove', handlePointerMove as EventListener);
       cancelAnimationFrame(rafId);
+      observer.disconnect();
     };
   }, [aura.sizePx, aura.smoothing, trackingTargetRef]);
 
@@ -170,7 +199,29 @@ const OrbitCursorLayer: React.FC<OrbitCursorLayerProps> = ({
     pointerTarget.addEventListener('pointermove', handlePointerMove as EventListener);
 
     let rafId = 0;
+    let isVisible = true;
+    let isRendering = false;
+
+    // Visibility-based optimization: pause rendering when not visible
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible && !isRendering) {
+        isRendering = true;
+        animate();
+      } else if (!isVisible) {
+        isRendering = false;
+        cancelAnimationFrame(rafId);
+      }
+    }, { threshold: 0.1 });
+
     const animate = () => {
+      if (!isVisible) {
+        isRendering = false;
+        return;
+      }
+      isRendering = true;
+      rafId = requestAnimationFrame(animate);
+
       const trails = trailRef.current;
       if (trails.length !== orbit.orbCount) {
         trailRef.current = Array.from({ length: orbit.orbCount }, () => ({
@@ -195,15 +246,22 @@ const OrbitCursorLayer: React.FC<OrbitCursorLayerProps> = ({
           orb.style.opacity = `${(orbit.opacity * (1 - index / Math.max(orbit.orbCount + 2, 1))).toFixed(3)}`;
         }
       }
-
-      rafId = requestAnimationFrame(animate);
     };
 
-    rafId = requestAnimationFrame(animate);
+    // Find the container element to observe
+    const container = orbRefs.current[0]?.parentElement;
+    if (container) {
+      observer.observe(container);
+    }
+
+    // Explicitly kickstart the render
+    isRendering = true;
+    animate();
 
     return () => {
       pointerTarget.removeEventListener('pointermove', handlePointerMove as EventListener);
       cancelAnimationFrame(rafId);
+      observer.disconnect();
     };
   }, [
     orbit.orbCount,
@@ -272,7 +330,29 @@ const CometCursorLayer: React.FC<CometCursorLayerProps> = ({
     pointerTarget.addEventListener('pointermove', handlePointerMove as EventListener);
 
     let rafId = 0;
+    let isVisible = true;
+    let isRendering = false;
+
+    // Visibility-based optimization: pause rendering when not visible
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible && !isRendering) {
+        isRendering = true;
+        animate();
+      } else if (!isVisible) {
+        isRendering = false;
+        cancelAnimationFrame(rafId);
+      }
+    }, { threshold: 0.1 });
+
     const animate = () => {
+      if (!isVisible) {
+        isRendering = false;
+        return;
+      }
+      isRendering = true;
+      rafId = requestAnimationFrame(animate);
+
       if (trailRef.current.length !== segmentCount) {
         trailRef.current = Array.from({ length: segmentCount }, () => ({
           x: targetRef.current.x,
@@ -298,15 +378,22 @@ const CometCursorLayer: React.FC<CometCursorLayerProps> = ({
           segment.style.transform = `translate3d(${(current.x - size * 0.5).toFixed(2)}px, ${(current.y - size * 0.5).toFixed(2)}px, 0)`;
         }
       }
-
-      rafId = requestAnimationFrame(animate);
     };
 
-    rafId = requestAnimationFrame(animate);
+    // Find the container element to observe
+    const container = segmentRefs.current[0]?.parentElement;
+    if (container) {
+      observer.observe(container);
+    }
+
+    // Explicitly kickstart the render
+    isRendering = true;
+    animate();
 
     return () => {
       pointerTarget.removeEventListener('pointermove', handlePointerMove as EventListener);
       cancelAnimationFrame(rafId);
+      observer.disconnect();
     };
   }, [comet.followStrength, comet.headSizePx, comet.opacity, segmentCount, trackingTargetRef]);
 
@@ -566,10 +653,31 @@ const BeamCursorLayer: React.FC<BeamCursorLayerProps> = ({
     pointerTarget.addEventListener('pointermove', handlePointerMove as EventListener);
 
     let rafId = 0;
+    let isVisible = true;
+    let isRendering = false;
+
+    // Visibility-based optimization: pause rendering when not visible
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible && !isRendering) {
+        isRendering = true;
+        animate();
+      } else if (!isVisible) {
+        isRendering = false;
+        cancelAnimationFrame(rafId);
+      }
+    }, { threshold: 0.1 });
+
     const animate = () => {
+      if (!isVisible) {
+        isRendering = false;
+        return;
+      }
+      isRendering = true;
+      rafId = requestAnimationFrame(animate);
+
       const node = beamRef.current;
       if (!node) {
-        rafId = requestAnimationFrame(animate);
         return;
       }
 
@@ -587,15 +695,22 @@ const BeamCursorLayer: React.FC<BeamCursorLayerProps> = ({
         x: currentRef.current.x,
         y: currentRef.current.y,
       };
-
-      rafId = requestAnimationFrame(animate);
     };
 
-    rafId = requestAnimationFrame(animate);
+    // Find the container element to observe
+    const container = beamRef.current?.parentElement;
+    if (container) {
+      observer.observe(container);
+    }
+
+    // Explicitly kickstart the render
+    isRendering = true;
+    animate();
 
     return () => {
       pointerTarget.removeEventListener('pointermove', handlePointerMove as EventListener);
       cancelAnimationFrame(rafId);
+      observer.disconnect();
     };
   }, [beam, trackingTargetRef]);
 
@@ -654,11 +769,32 @@ const PlasmaCursorLayer: React.FC<PlasmaCursorLayerProps> = ({
     pointerTarget.addEventListener('pointermove', handlePointerMove as EventListener);
 
     let rafId = 0;
+    let isVisible = true;
+    let isRendering = false;
+
+    // Visibility-based optimization: pause rendering when not visible
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible && !isRendering) {
+        isRendering = true;
+        animate();
+      } else if (!isVisible) {
+        isRendering = false;
+        cancelAnimationFrame(rafId);
+      }
+    }, { threshold: 0.1 });
+
     const animate = () => {
+      if (!isVisible) {
+        isRendering = false;
+        return;
+      }
+      isRendering = true;
+      rafId = requestAnimationFrame(animate);
+
       const blobA = blobARef.current;
       const blobB = blobBRef.current;
       if (!blobA || !blobB) {
-        rafId = requestAnimationFrame(animate);
         return;
       }
 
@@ -675,15 +811,22 @@ const PlasmaCursorLayer: React.FC<PlasmaCursorLayerProps> = ({
 
       blobA.style.transform = `translate3d(${(aX - plasma.sizePx * 0.5).toFixed(2)}px, ${(aY - plasma.sizePx * 0.5).toFixed(2)}px, 0)`;
       blobB.style.transform = `translate3d(${(bX - plasma.sizePx * 0.5).toFixed(2)}px, ${(bY - plasma.sizePx * 0.5).toFixed(2)}px, 0)`;
-
-      rafId = requestAnimationFrame(animate);
     };
 
-    rafId = requestAnimationFrame(animate);
+    // Find the container element to observe
+    const container = blobARef.current?.parentElement;
+    if (container) {
+      observer.observe(container);
+    }
+
+    // Explicitly kickstart the render
+    isRendering = true;
+    animate();
 
     return () => {
       pointerTarget.removeEventListener('pointermove', handlePointerMove as EventListener);
       cancelAnimationFrame(rafId);
+      observer.disconnect();
     };
   }, [plasma, trackingTargetRef]);
 
@@ -721,7 +864,7 @@ const PlasmaCursorLayer: React.FC<PlasmaCursorLayerProps> = ({
   );
 };
 
-export const CursorAnimationLayer: React.FC<CursorAnimationLayerProps> = ({
+export const CursorAnimationLayer: React.FC<CursorAnimationLayerProps> = memo(({
   animation,
   positionMode = 'fixed',
   className,
@@ -820,6 +963,6 @@ export const CursorAnimationLayer: React.FC<CursorAnimationLayerProps> = ({
       containerStyle={containerStyle}
     />
   );
-};
+});
 
 export default CursorAnimationLayer;

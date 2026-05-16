@@ -34,9 +34,9 @@ export function drawCoverFrame(
   // Clear context and draw image
   ctx.clearRect(0, 0, cw, ch);
   
-  // Smoothing optimizations
+  // Smoothing optimizations - use 'low' for better FPS
   ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
+  ctx.imageSmoothingQuality = 'low';
 
   ctx.drawImage(image, dx, dy, scaledW, scaledH);
 }

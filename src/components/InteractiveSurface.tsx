@@ -257,8 +257,24 @@ export const InteractiveSurface = forwardRef<InteractiveSurfaceRef, Props>(({ so
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
+    let isVisible = true;
+    let isRendering = false;
+
+    // Visibility-based optimization: pause rendering when not visible
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible && !isRendering) {
+        lastTime = performance.now();
+        renderLoop(lastTime);
+      }
+    }, { threshold: 0.1 });
 
     const renderLoop = (time: number) => {
+      if (!isVisible) {
+        isRendering = false;
+        return; // Complete RAF detachment
+      }
+      isRendering = true;
       animationFrameId = requestAnimationFrame(renderLoop);
       const dt = Math.min((time - lastTime) * 0.001, 0.1); // clamp delta time
       lastTime = time;
@@ -277,17 +293,17 @@ export const InteractiveSurface = forwardRef<InteractiveSurfaceRef, Props>(({ so
       const mouseLerp = 1.0 - Math.exp(-24.0 * dt);
       state.mouseX += (state.rawMouseX - state.mouseX) * mouseLerp;
       state.mouseY += (state.rawMouseY - state.mouseY) * mouseLerp;
-      
+
       // Calculate true velocity from position delta
       const dx = state.mouseX - state.prevMouseX;
       const dy = state.mouseY - state.prevMouseY;
       const deltaPx = Math.sqrt(dx * dx + dy * dy);
       const canvasDiagonal = Math.max(1, Math.hypot(gl.canvas.width, gl.canvas.height));
       const rawVel = deltaPx / canvasDiagonal;
-      
+
       // Dampen velocity to prevent instantaneous flashing
       state.velocity += (rawVel * 6.5 - state.velocity) * 8.0 * dt;
-      
+
       // Update prev
       state.prevMouseX = state.mouseX;
       state.prevMouseY = state.mouseY;
@@ -295,7 +311,7 @@ export const InteractiveSurface = forwardRef<InteractiveSurfaceRef, Props>(({ so
       // Precision sleep: If intensity matched, velocity is essentially zero, and no hard re-render flagged, skip WebGL draw.
       const isMoving = state.velocity > 0.001;
       const isFading = Math.abs(state.currentIntensity - state.targetIntensity) > 0.001;
-      
+
       if (!isMoving && !isFading && !state.needsRender && state.currentIntensity < 0.001) {
           return; // Totally idle
       }
@@ -309,13 +325,23 @@ export const InteractiveSurface = forwardRef<InteractiveSurfaceRef, Props>(({ so
       gl.uniform1f(locRef.current.u_velocity, state.velocity);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
-      
+
       // Consume the manual render flag
       state.needsRender = false;
     };
 
-    animationFrameId = requestAnimationFrame(renderLoop);
-    return () => cancelAnimationFrame(animationFrameId);
+    if (canvasRef.current) {
+      observer.observe(canvasRef.current);
+    }
+
+    // Explicitly kickstart the render
+    lastTime = performance.now();
+    renderLoop(lastTime);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      observer.disconnect();
+    };
   }, []);
 
   // 4. Global Raycasting / Mouse Monitor

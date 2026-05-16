@@ -7,45 +7,47 @@ import {
   getScaledRem,
   type SurfaceTone,
 } from '../components/designSystem';
-import { useSiteConfig } from '../context/SiteConfigContext';
-import {
-  DEFAULT_SITE_CONFIG,
-  SITE_BUTTON_VARIANTS,
-  SITE_CARD_VARIANTS,
-  SITE_GLASS_VARIANTS,
-  SITE_SOCIAL_ICON_KEYS,
-  SITE_CONFIG_STORAGE_KEY,
-  type SiteButtonVariant,
-  type SiteCardVariant,
-  type SiteCursorAnimationMode,
-  type SiteGlassVariant,
-  type SiteConfig,
-  type SiteContentStatus,
-  type SiteNavItem,
-  type SiteArticle,
-  type SiteProject,
-  type SiteSection,
-  type SiteTestimonial,
-  type SiteTimelineEvent,
-  type SiteScene05Certification,
-  type SiteInboxMessage,
-  type SiteMessageStatus,
-} from '../config/siteConfig';
-import {
-  BarChart3,
-  ExternalLink,
-  FileText,
-  Globe,
-  Inbox,
-  LogOut,
-  RotateCcw,
-  Save,
-  Settings,
-  type LucideIcon,
-} from 'lucide-react';
+  import { useSiteConfig } from '../context/SiteConfigContext';
+  import { loginToDashboard, checkDashboardAuth, logoutFromDashboard, getApiDiagnostics, fetchMessages } from '../utils/apiClient';
+  import {
+    DEFAULT_SITE_CONFIG,
+    SITE_BUTTON_VARIANTS,
+    SITE_CARD_VARIANTS,
+    SITE_GLASS_VARIANTS,
+    SITE_SOCIAL_ICON_KEYS,
+    SITE_CONFIG_STORAGE_KEY,
+    type SiteButtonVariant,
+    type SiteCardVariant,
+    type SiteCursorAnimationMode,
+    type SiteGlassVariant,
+    type SiteConfig,
+    type SiteContentStatus,
+    type SiteNavItem,
+    type SiteArticle,
+    type SiteProject,
+    type SiteSection,
+    type SiteTestimonial,
+    type SiteExperienceMarqueeItem,
+    type SiteScene05Certification,
+    type SiteScene05LogoItem,
+    type SiteInboxMessage,
+    type SiteMessageStatus,
+  } from '../config/siteConfig';
+  import {
+    BarChart3Icon,
+    ExternalLinkIcon,
+    FileTextIcon,
+    GlobeIcon,
+    InboxIcon,
+    LogOutIcon,
+    RotateCcwIcon,
+    SaveIcon,
+    SettingsIcon,
+    DownloadIcon,
+    UploadIcon,
+    RefreshCwIcon,
+  } from '../components/icons';
 
-const DASHBOARD_PASSWORD = '00000008';
-const DASHBOARD_AUTH_KEY = 'portfolio.dashboard.auth.v1';
 const DASHBOARD_LOGO_FALLBACK_SRC = new URL('../../my logo/white.png', import.meta.url).href;
 
 const MAX_IMAGE_UPLOAD_BYTES = 1_500_000;
@@ -56,7 +58,6 @@ type DashboardSectionId =
   | 'intro'
   | 'featured'
   | 'projects'
-  | 'timeline'
   | 'testimonials'
   | 'navigation'
   | 'footer'
@@ -64,46 +65,47 @@ type DashboardSectionId =
   | 'scene05'
   | 'designSystem'
   | 'animation'
-  | 'articlesPage';
+  | 'articlesPage'
+  | 'crt';
 
 type DashboardWorkspace = 'site' | 'articles' | 'settings' | 'analytics' | 'messages';
-type DashboardSettingsPanel = 'browser' | 'integrations' | 'inbox';
+type DashboardSettingsPanel = 'browser' | 'integrations' | 'inbox' | 'storage';
 
 const DASHBOARD_WORKSPACES: Array<{
   id: DashboardWorkspace;
   label: string;
   description: string;
-  icon: LucideIcon;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
 }> = [
   {
     id: 'site',
     label: 'Site Editor',
     description: 'Edit all website sections, text, images, and visual modules.',
-    icon: Globe,
+    icon: GlobeIcon,
   },
   {
     id: 'articles',
     label: 'Articles Studio',
     description: 'Create, schedule, and publish articles.',
-    icon: FileText,
+    icon: FileTextIcon,
   },
   {
     id: 'settings',
     label: 'Settings',
     description: 'Manage browser metadata, domain, API, and integrations.',
-    icon: Settings,
+    icon: SettingsIcon,
   },
   {
     id: 'analytics',
     label: 'Analytics',
     description: 'Track channel performance, sessions, and conversion health.',
-    icon: BarChart3,
+    icon: BarChart3Icon,
   },
   {
     id: 'messages',
     label: 'Messages',
     description: 'Review inbound messages submitted from website visitors.',
-    icon: Inbox,
+    icon: InboxIcon,
   },
 ];
 
@@ -127,6 +129,11 @@ const DASHBOARD_SETTINGS_PANELS: Array<{
     label: 'Inbox Routing',
     description: 'Forwarding and auto-reply behavior for new messages.',
   },
+  {
+    id: 'storage',
+    label: 'Storage & Backup',
+    description: 'Manage data storage, backups, and exports.',
+  },
 ];
 
 const DASHBOARD_SECTIONS: Array<{ id: DashboardSectionId; label: string; hint: string }> = [
@@ -136,25 +143,26 @@ const DASHBOARD_SECTIONS: Array<{ id: DashboardSectionId; label: string; hint: s
   { id: 'projects', label: 'Projects', hint: 'Project cards and media sources' },
   { id: 'testimonials', label: 'Testimonials', hint: 'Slider content and avatar cards' },
   { id: 'articlesPage', label: 'Articles Page', hint: 'Hero, filters, labels, and list copy' },
-  { id: 'timeline', label: 'Career Timeline', hint: 'About page timeline milestones and descriptions' },
   { id: 'navigation', label: 'Navigation + Music', hint: 'Top bar links, CTA, and music controls' },
   { id: 'footer', label: 'Footer', hint: 'Contact, social, legal, and office details' },
+  { id: 'contact', label: 'Contact Page', hint: 'Hero, form, cards, social links, and validation messages' },
   { id: 'visibility', label: 'Visibility', hint: 'Show/hide layers and major sections' },
   { id: 'sequence', label: 'Cinematic Flow', hint: 'Scene order, auto handoff, and portal frame' },
   { id: 'designSystem', label: 'Design System', hint: 'Tokens, foundations, and style mapping' },
   { id: 'animation', label: 'Animation Lab', hint: 'Cursor presets and motion timings' },
+  { id: 'crt', label: 'CRT Effect', hint: 'Retro screen effects and advanced CRT settings' },
 ];
 
 const DASHBOARD_SECTION_GROUPS: Array<{ id: string; label: string; sectionIds: DashboardSectionId[] }> = [
   {
     id: 'pages',
     label: 'Pages & Content',
-    sectionIds: ['intro', 'scene05', 'featured', 'projects', 'testimonials', 'articlesPage', 'timeline', 'navigation', 'footer'],
+    sectionIds: ['intro', 'scene05', 'featured', 'projects', 'testimonials', 'articlesPage', 'navigation', 'footer', 'contact'],
   },
   {
     id: 'system-motion',
     label: 'System Layer',
-    sectionIds: ['visibility', 'sequence', 'designSystem', 'animation'],
+    sectionIds: ['visibility', 'sequence', 'designSystem', 'animation', 'crt'],
   },
 ];
 
@@ -274,7 +282,7 @@ const SectionButton: React.FC<{
       onClick={onClick}
       className={`group w-full rounded-[14px] border px-3.5 py-3 text-left transition-all duration-300 ${
         isActive
-          ? 'border-[#b6f45b]/50 bg-[#b6f45b]/12 text-white shadow-[0_16px_34px_-24px_rgba(182,244,91,0.6)]'
+          ? 'border-[#000000]/50 bg-[#000000]/12 text-white shadow-[0_16px_34px_-24px_rgba(182,244,91,0.6)]'
           : 'border-white/12 bg-white/[0.04] text-white/84 hover:border-white/24 hover:bg-white/[0.08]'
       }`}
     >
@@ -361,7 +369,7 @@ const Input: React.FC<{
           step={stepValue}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-[10px] border border-white/14 bg-white/[0.06] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-[#b6f45b]/58 focus:ring-2 focus:ring-[#b6f45b]/24"
+          className="w-full rounded-[10px] border border-white/14 bg-white/[0.06] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-[#000000]/58 focus:ring-2 focus:ring-[#000000]/24"
         />
 
         {showSlider ? (
@@ -389,7 +397,7 @@ const Input: React.FC<{
         step={step}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-[10px] border border-white/14 bg-white/[0.06] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-[#b6f45b]/58 focus:ring-2 focus:ring-[#b6f45b]/24"
+        className="rounded-[10px] border border-white/14 bg-white/[0.06] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-[#000000]/58 focus:ring-2 focus:ring-[#000000]/24"
       />
     </label>
   );
@@ -408,7 +416,7 @@ const Textarea: React.FC<{
         rows={rows}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-[10px] border border-white/14 bg-white/[0.06] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-[#b6f45b]/58 focus:ring-2 focus:ring-[#b6f45b]/24"
+        className="rounded-[10px] border border-white/14 bg-white/[0.06] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-[#000000]/58 focus:ring-2 focus:ring-[#000000]/24"
       />
     </label>
   );
@@ -426,7 +434,7 @@ const SelectInput: React.FC<{
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-[10px] border border-white/14 bg-white/[0.06] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-[#b6f45b]/58 focus:ring-2 focus:ring-[#b6f45b]/24"
+        className="rounded-[10px] border border-white/14 bg-white/[0.06] px-3 py-2 text-[13px] text-white outline-none transition-all focus:border-[#000000]/58 focus:ring-2 focus:ring-[#000000]/24"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -612,7 +620,7 @@ const Toggle: React.FC<{ label: string; checked: boolean; onChange: (checked: bo
   return (
     <label className="flex items-center justify-between gap-3 rounded-[10px] border border-white/14 bg-white/[0.05] px-3 py-2">
       <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/78">{label}</span>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-[#b6f45b]" />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-[#000000]" />
     </label>
   );
 };
@@ -623,9 +631,11 @@ const listItemClass =
 const dashboardActionButtonBaseClass =
   'inline-flex h-10 items-center justify-center rounded-[10px] border px-4 font-mono text-[10px] uppercase tracking-[0.16em] transition-all focus-visible:outline-none focus-visible:ring-2';
 const dashboardActionButtonPrimaryClass =
-  `${dashboardActionButtonBaseClass} border-[#b6f45b]/38 bg-[#b6f45b] text-[#0a0d11] hover:bg-[#c4ff67] focus-visible:ring-[#b6f45b]/45`;
+  `${dashboardActionButtonBaseClass} border-[#000000]/38 bg-[#000000] text-[#0a0d11] hover:bg-[#333333] focus-visible:ring-[#000000]/45`;
 const dashboardActionButtonSecondaryClass =
   `${dashboardActionButtonBaseClass} border-white/16 bg-white/[0.06] text-white hover:bg-white/[0.12] focus-visible:ring-white/22`;
+const dashboardActionButtonApiClass =
+  `${dashboardActionButtonBaseClass} border-[#3b82f6]/40 bg-[#3b82f6] text-white hover:bg-[#60a5fa] focus-visible:ring-[#3b82f6]/50`;
 const dashboardActionButtonDangerClass =
   `${dashboardActionButtonBaseClass} border-[#ef4444]/42 bg-[#ef4444]/14 text-[#fecaca] hover:bg-[#ef4444]/22 focus-visible:ring-[#ef4444]/30`;
 const dashboardStatusSuccessClass =
@@ -634,7 +644,17 @@ const dashboardStatusFailureClass =
   'border-[#ef4444]/40 bg-[#ef4444]/14 text-[#fecaca]';
 
 export const Dashboard: React.FC = () => {
-  const { siteConfig, setSiteConfig, resetSiteConfig } = useSiteConfig();
+  const {
+    siteConfig,
+    setSiteConfig,
+    resetSiteConfig,
+    saveToAPI,
+    storageInfo,
+    versionHistory,
+    exportStorage,
+    importStorage,
+    restoreVersion,
+  } = useSiteConfig();
 
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -648,14 +668,53 @@ export const Dashboard: React.FC = () => {
   const [messageFilter, setMessageFilter] = useState<'all' | SiteMessageStatus>('all');
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadError, setUploadError] = useState('');
+  const [apiDiagnostics, setApiDiagnostics] = useState<Awaited<ReturnType<typeof getApiDiagnostics>> | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activeButtonStudio, setActiveButtonStudio] = useState<SiteButtonVariant>('button-1');
   const [activeCardStudio, setActiveCardStudio] = useState<SiteCardVariant>('card-1');
   const previewAnimationAreaRef = useRef<HTMLDivElement | null>(null);
-  const [isUnlocked, setIsUnlocked] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.sessionStorage.getItem(DASHBOARD_AUTH_KEY) === 'ok';
-  });
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isFetchingMessages, setIsFetchingMessages] = useState(false);
+
+  // Fetch messages from API when entering messages workspace
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const verifySession = async () => {
+      const authenticated = await checkDashboardAuth();
+      if (isMounted) {
+        setIsUnlocked(authenticated);
+      }
+    };
+
+    void verifySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Auto-fetch messages when switching to messages workspace
+  React.useEffect(() => {
+    if (activeWorkspace === 'messages' && isUnlocked) {
+      const loadMessages = async () => {
+        setIsFetchingMessages(true);
+        try {
+          const response = await fetchMessages();
+          if (response.success && response.data) {
+            // Update inbox with fetched messages
+            updateDashboardInbox('items', response.data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch messages:', error);
+        } finally {
+        setIsFetchingMessages(false);
+        }
+        };
+
+      void loadMessages();
+    }
+  }, [activeWorkspace, isUnlocked]);
 
   const updateConfig = (updater: (prev: SiteConfig) => SiteConfig) => {
     setSiteConfig((prev) => updater(prev));
@@ -758,17 +817,6 @@ export const Dashboard: React.FC = () => {
     }));
   };
 
-  const updateTimelineEvent = (
-    eventId: string,
-    updater: (prev: SiteTimelineEvent) => SiteTimelineEvent,
-  ) => {
-    updateConfig((prev) => ({
-      ...prev,
-      journeyTimeline: prev.journeyTimeline.map((ev) =>
-        ev.id === eventId ? updater(ev) : ev,
-      ),
-    }));
-  };
 
   const updateTestimonial = (
     testimonialId: string,
@@ -794,6 +842,31 @@ export const Dashboard: React.FC = () => {
           item.id === certificationId ? updater(item) : item,
         ),
       },
+    }));
+  };
+
+  const updateScene05LogoItem = (
+    logoId: string,
+    updater: (item: SiteScene05LogoItem) => SiteScene05LogoItem,
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      scene05: {
+        ...prev.scene05,
+        companyLogos: prev.scene05.companyLogos.map((item) => (item.id === logoId ? updater(item) : item)),
+      },
+    }));
+  };
+
+  const updateExperienceMarqueeItem = (
+    itemId: string,
+    updater: (item: SiteExperienceMarqueeItem) => SiteExperienceMarqueeItem,
+  ) => {
+    updateConfig((prev) => ({
+      ...prev,
+      experienceMarquee: prev.experienceMarquee.map((item) =>
+        item.id === itemId ? updater(item) : item,
+      ),
     }));
   };
 
@@ -1138,7 +1211,7 @@ export const Dashboard: React.FC = () => {
     try {
       window.localStorage.setItem(SITE_CONFIG_STORAGE_KEY, JSON.stringify(siteConfig));
       setHasUnsavedChanges(false);
-      setUploadMessage('Changes saved successfully.');
+      setUploadMessage('Saved locally in this browser only. Use "Save to API" to publish for everyone.');
       return true;
     } catch {
       setUploadError('Unable to save changes. Try reducing uploaded file sizes and save again.');
@@ -1227,6 +1300,160 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleTestimonialAvatarUpload = async (testimonialId: string, file: File | null) => {
+    clearUploadFeedback();
+    if (!file) return;
+
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      setUploadError(
+        `Image is too large. Keep it under ${formatMegabytes(MAX_IMAGE_UPLOAD_BYTES)} for reliable local save.`,
+      );
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      updateConfig((prev) => ({
+        ...prev,
+        testimonials: prev.testimonials.map((item) =>
+          item.id === testimonialId ? { ...item, avatar: dataUrl } : item,
+        ),
+      }));
+      setUploadMessage(`Avatar image uploaded successfully.`);
+    } catch {
+      setUploadError('Could not read the selected image file.');
+    }
+  };
+
+  const handleArticleCoverUpload = async (articleId: string, file: File | null) => {
+    clearUploadFeedback();
+    if (!file) return;
+
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      setUploadError(
+        `Image is too large. Keep it under ${formatMegabytes(MAX_IMAGE_UPLOAD_BYTES)} for reliable local save.`,
+      );
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      updateArticle(articleId, (item) => ({ ...item, coverImage: dataUrl }));
+      setUploadMessage(`Cover image uploaded successfully.`);
+    } catch {
+      setUploadError('Could not read the selected image file.');
+    }
+  };
+
+  const handlePortraitUpload = async (file: File | null) => {
+    clearUploadFeedback();
+    if (!file) return;
+
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      setUploadError(
+        `Image is too large. Keep it under ${formatMegabytes(MAX_IMAGE_UPLOAD_BYTES)} for reliable local save.`,
+      );
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      updateConfig((prev) => ({
+        ...prev,
+        scene05: { ...prev.scene05, portraitImage: dataUrl },
+      }));
+      setUploadMessage(`Portrait image uploaded successfully.`);
+    } catch {
+      setUploadError('Could not read the selected image file.');
+    }
+  };
+
+  const handleCertificationLogoUpload = async (certificationId: string, file: File | null) => {
+    clearUploadFeedback();
+    if (!file) return;
+
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      setUploadError(
+        `Image is too large. Keep it under ${formatMegabytes(MAX_IMAGE_UPLOAD_BYTES)} for reliable local save.`,
+      );
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      updateScene05Certification(certificationId, (item) => ({ ...item, logoSrc: dataUrl }));
+      setUploadMessage(`Certification logo uploaded successfully.`);
+    } catch {
+      setUploadError('Could not read the selected image file.');
+    }
+  };
+
+  const handleCompanyLogoUpload = async (logoId: string, file: File | null) => {
+    clearUploadFeedback();
+    if (!file) return;
+
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      setUploadError(
+        `Image is too large. Keep it under ${formatMegabytes(MAX_IMAGE_UPLOAD_BYTES)} for reliable local save.`,
+      );
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      updateScene05LogoItem(logoId, (item) => ({ ...item, logoSrc: dataUrl }));
+      setUploadMessage(`Company logo uploaded successfully.`);
+    } catch {
+      setUploadError('Could not read the selected image file.');
+    }
+  };
+
+  const handleLogoLightUpload = async (file: File | null) => {
+    clearUploadFeedback();
+    if (!file) return;
+
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      setUploadError(
+        `Image is too large. Keep it under ${formatMegabytes(MAX_IMAGE_UPLOAD_BYTES)} for reliable local save.`,
+      );
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      updateConfig((prev) => ({
+        ...prev,
+        persistentUI: { ...prev.persistentUI, logoLightSrc: dataUrl },
+      }));
+      setUploadMessage(`Light logo uploaded successfully.`);
+    } catch {
+      setUploadError('Could not read the selected image file.');
+    }
+  };
+
+  const handleLogoDarkUpload = async (file: File | null) => {
+    clearUploadFeedback();
+    if (!file) return;
+
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      setUploadError(
+        `Image is too large. Keep it under ${formatMegabytes(MAX_IMAGE_UPLOAD_BYTES)} for reliable local save.`,
+      );
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      updateConfig((prev) => ({
+        ...prev,
+        persistentUI: { ...prev.persistentUI, logoDarkSrc: dataUrl },
+      }));
+      setUploadMessage(`Dark logo uploaded successfully.`);
+    } catch {
+      setUploadError('Could not read the selected image file.');
+    }
+  };
+
   const stats = useMemo(() => {
     const inboxItems = siteConfig.dashboard.inbox.items;
     return {
@@ -1264,28 +1491,24 @@ export const Dashboard: React.FC = () => {
   const dashboardLogoSrc = DASHBOARD_LOGO_FALLBACK_SRC;
   const dashboardLogoAlt = siteConfig.persistentUI.logoAlt || 'Studio Logo';
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password !== DASHBOARD_PASSWORD) {
-      setAuthError('Wrong password');
+    const response = await loginToDashboard(password);
+    if (!response.success || !response.authenticated) {
+      setAuthError(response.error || 'Wrong password');
       return;
     }
 
     setAuthError('');
     setIsUnlocked(true);
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem(DASHBOARD_AUTH_KEY, 'ok');
-    }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutFromDashboard();
     setIsUnlocked(false);
     setPassword('');
     setAuthError('');
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.removeItem(DASHBOARD_AUTH_KEY);
-    }
   };
 
   const renderSectionContent = () => {
@@ -1497,6 +1720,19 @@ export const Dashboard: React.FC = () => {
 
             <Card title="Portal Frame Window" subtitle="Edit the first-scene window size, offsets, and matte tone">
               <div className="grid gap-4 xl:grid-cols-2">
+                <Toggle
+                  label="Watermark cover"
+                  checked={siteConfig.globalFrame.watermarkMaskEnabled}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      globalFrame: {
+                        ...prev.globalFrame,
+                        watermarkMaskEnabled: next,
+                      },
+                    }))
+                  }
+                />
                 <Input
                   label="Top offset mobile (px)"
                   type="number"
@@ -1561,6 +1797,172 @@ export const Dashboard: React.FC = () => {
                       globalFrame: {
                         ...prev.globalFrame,
                         bottomOffsetDesktopPx: toSafeNumberInRange(next, prev.globalFrame.bottomOffsetDesktopPx, 0, 360),
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Watermark mask mobile (px)"
+                  type="number"
+                  min={0}
+                  max={240}
+                  step={1}
+                  value={siteConfig.globalFrame.watermarkMaskMobilePx}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      globalFrame: {
+                        ...prev.globalFrame,
+                        watermarkMaskMobilePx: toSafeNumberInRange(next, prev.globalFrame.watermarkMaskMobilePx, 0, 240),
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Watermark mask desktop (px)"
+                  type="number"
+                  min={0}
+                  max={320}
+                  step={1}
+                  value={siteConfig.globalFrame.watermarkMaskDesktopPx}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      globalFrame: {
+                        ...prev.globalFrame,
+                        watermarkMaskDesktopPx: toSafeNumberInRange(next, prev.globalFrame.watermarkMaskDesktopPx, 0, 320),
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Watermark mask width mobile (px)"
+                  type="number"
+                  min={0}
+                  max={420}
+                  step={1}
+                  value={siteConfig.globalFrame.watermarkMaskWidthMobilePx}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      globalFrame: {
+                        ...prev.globalFrame,
+                        watermarkMaskWidthMobilePx: toSafeNumberInRange(
+                          next,
+                          prev.globalFrame.watermarkMaskWidthMobilePx,
+                          0,
+                          420,
+                        ),
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Watermark mask width desktop (px)"
+                  type="number"
+                  min={0}
+                  max={520}
+                  step={1}
+                  value={siteConfig.globalFrame.watermarkMaskWidthDesktopPx}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      globalFrame: {
+                        ...prev.globalFrame,
+                        watermarkMaskWidthDesktopPx: toSafeNumberInRange(
+                          next,
+                          prev.globalFrame.watermarkMaskWidthDesktopPx,
+                          0,
+                          520,
+                        ),
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Watermark mask right mobile (px)"
+                  type="number"
+                  min={0}
+                  max={160}
+                  step={1}
+                  value={siteConfig.globalFrame.watermarkMaskRightMobilePx}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      globalFrame: {
+                        ...prev.globalFrame,
+                        watermarkMaskRightMobilePx: toSafeNumberInRange(
+                          next,
+                          prev.globalFrame.watermarkMaskRightMobilePx,
+                          0,
+                          160,
+                        ),
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Watermark mask right desktop (px)"
+                  type="number"
+                  min={0}
+                  max={240}
+                  step={1}
+                  value={siteConfig.globalFrame.watermarkMaskRightDesktopPx}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      globalFrame: {
+                        ...prev.globalFrame,
+                        watermarkMaskRightDesktopPx: toSafeNumberInRange(
+                          next,
+                          prev.globalFrame.watermarkMaskRightDesktopPx,
+                          0,
+                          240,
+                        ),
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Watermark mask bottom mobile (px)"
+                  type="number"
+                  min={0}
+                  max={160}
+                  step={1}
+                  value={siteConfig.globalFrame.watermarkMaskBottomMobilePx}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      globalFrame: {
+                        ...prev.globalFrame,
+                        watermarkMaskBottomMobilePx: toSafeNumberInRange(
+                          next,
+                          prev.globalFrame.watermarkMaskBottomMobilePx,
+                          0,
+                          160,
+                        ),
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Watermark mask bottom desktop (px)"
+                  type="number"
+                  min={0}
+                  max={240}
+                  step={1}
+                  value={siteConfig.globalFrame.watermarkMaskBottomDesktopPx}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      globalFrame: {
+                        ...prev.globalFrame,
+                        watermarkMaskBottomDesktopPx: toSafeNumberInRange(
+                          next,
+                          prev.globalFrame.watermarkMaskBottomDesktopPx,
+                          0,
+                          240,
+                        ),
                       },
                     }))
                   }
@@ -1874,6 +2276,16 @@ export const Dashboard: React.FC = () => {
                     onChange={(next) => updateProject(project.id, (item) => ({ ...item, live: next }))}
                   />
 
+                  <SelectInput
+                    label="Button Type"
+                    value={project.buttonType}
+                    options={[
+                      { value: 'live', label: 'Live App' },
+                      { value: 'caseStudy', label: 'Case Study' },
+                    ]}
+                    onChange={(next) => updateProject(project.id, (item) => ({ ...item, buttonType: next as 'live' | 'caseStudy' }))}
+                  />
+
                   <button
                     type="button"
                     onClick={() => {
@@ -1896,9 +2308,10 @@ export const Dashboard: React.FC = () => {
                     id: `project-${Date.now()}`,
                     title: 'New Project',
                     tags: 'WEB • DESIGN',
-                    img: '/frames/scene-02-desk-focus/ezgif-frame-001.jpg',
+                    img: '/frames/scene-02-desk-focus/ezgif-frame-001.avif',
                     behance: '#',
                     live: '#',
+                    buttonType: 'live',
                     visible: true,
                   };
                   updateConfig((prev) => ({
@@ -1909,78 +2322,6 @@ export const Dashboard: React.FC = () => {
                 className="rounded-[8px] border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
               >
                 Add Project
-              </button>
-            </Card>
-          </div>
-        );
-
-      case 'timeline':
-        return (
-          <div className="grid gap-4">
-            <Card title="Journey Timeline" subtitle="Edit vertical timeline events">
-              {siteConfig.journeyTimeline.map((event) => (
-                <div key={event.id} className={listItemClass}>
-                  <Input
-                    label="Role"
-                    value={event.role}
-                    onChange={(next) => updateTimelineEvent(event.id, (item) => ({ ...item, role: next }))}
-                  />
-                  <Input
-                    label="Company / Title"
-                    value={event.title}
-                    onChange={(next) => updateTimelineEvent(event.id, (item) => ({ ...item, title: next }))}
-                  />
-                  <Input
-                    label="Date / Period"
-                    value={event.date}
-                    onChange={(next) => updateTimelineEvent(event.id, (item) => ({ ...item, date: next }))}
-                  />
-                  <Textarea
-                    label="Description"
-                    value={event.description}
-                    rows={3}
-                    onChange={(next) => updateTimelineEvent(event.id, (item) => ({ ...item, description: next }))}
-                  />
-                  <div className="flex items-center justify-between gap-4 mt-2">
-                    <Toggle
-                      label="Visible"
-                      checked={event.visible}
-                      onChange={(next) => updateTimelineEvent(event.id, (item) => ({ ...item, visible: next }))}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateConfig((prev) => ({
-                          ...prev,
-                          journeyTimeline: prev.journeyTimeline.filter((item) => item.id !== event.id),
-                        }));
-                      }}
-                      className="rounded-[8px] border border-[#111217]/20 bg-[#111217]/6 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217] hover:bg-[#111217]/10"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  const newEvent: SiteTimelineEvent = {
-                    id: `timeline-${Date.now()}`,
-                    title: 'New Company',
-                    role: 'New Role',
-                    date: 'Present',
-                    description: 'Role description',
-                    visible: true,
-                  };
-                  updateConfig((prev) => ({
-                    ...prev,
-                    journeyTimeline: [...prev.journeyTimeline, newEvent],
-                  }));
-                }}
-                className="rounded-[8px] border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
-              >
-                Add Timeline Event
               </button>
             </Card>
           </div>
@@ -2013,6 +2354,19 @@ export const Dashboard: React.FC = () => {
                     rows={4}
                     onChange={(next) => updateTestimonial(testimonial.id, (item) => ({ ...item, quote: next }))}
                   />
+                  <label className="flex flex-col gap-1.5">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Upload avatar image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] ?? null;
+                        e.currentTarget.value = '';
+                        void handleTestimonialAvatarUpload(testimonial.id, file);
+                      }}
+                      className="rounded-[10px] border border-white/15 bg-black/30 px-3 py-2 text-xs text-white/85 file:mr-3 file:rounded-[8px] file:border-0 file:bg-white/15 file:px-2.5 file:py-1.5 file:text-xs file:text-white hover:file:bg-white/20"
+                    />
+                  </label>
                   <Input
                     label="Avatar URL"
                     value={testimonial.avatar}
@@ -2126,6 +2480,45 @@ export const Dashboard: React.FC = () => {
                 value={siteConfig.articlesPage.latestArticlesLabel}
                 onChange={(next) => updateArticlesPageField('latestArticlesLabel', next)}
               />
+
+              <div className="grid gap-3 rounded-[12px] border border-white/10 bg-black/20 p-3 md:grid-cols-2">
+                <Input
+                  label="Undated fallback label"
+                  value={siteConfig.articlesPage.undatedLabel}
+                  onChange={(next) => updateArticlesPageField('undatedLabel', next)}
+                />
+                <Input
+                  label="Videos section title"
+                  value={siteConfig.articlesPage.videosSectionTitle}
+                  onChange={(next) => updateArticlesPageField('videosSectionTitle', next)}
+                />
+                <Textarea
+                  label="Videos section description"
+                  value={siteConfig.articlesPage.videosSectionDescription}
+                  rows={2}
+                  onChange={(next) => updateArticlesPageField('videosSectionDescription', next)}
+                />
+                <Input
+                  label="Related video label"
+                  value={siteConfig.articlesPage.relatedVideoLabel}
+                  onChange={(next) => updateArticlesPageField('relatedVideoLabel', next)}
+                />
+                <Input
+                  label="Open video label"
+                  value={siteConfig.articlesPage.openVideoLabel}
+                  onChange={(next) => updateArticlesPageField('openVideoLabel', next)}
+                />
+                <Input
+                  label="Watch video label"
+                  value={siteConfig.articlesPage.watchVideoLabel}
+                  onChange={(next) => updateArticlesPageField('watchVideoLabel', next)}
+                />
+                <Input
+                  label="No thumbnail label"
+                  value={siteConfig.articlesPage.noThumbnailLabel}
+                  onChange={(next) => updateArticlesPageField('noThumbnailLabel', next)}
+                />
+              </div>
 
               <div className="grid gap-3 rounded-[12px] border border-white/10 bg-black/20 p-3 md:grid-cols-2">
                 <Input
@@ -2402,13 +2795,153 @@ export const Dashboard: React.FC = () => {
                 Add Nav Item
               </button>
             </Card>
+
+            <Card title="Navigation Logo" subtitle="Upload logo images for light and dark modes">
+              <label className="flex flex-col gap-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Upload light mode logo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    e.currentTarget.value = '';
+                    void handleLogoLightUpload(file);
+                  }}
+                  className="rounded-[10px] border border-white/15 bg-black/30 px-3 py-2 text-xs text-white/85 file:mr-3 file:rounded-[8px] file:border-0 file:bg-white/15 file:px-2.5 file:py-1.5 file:text-xs file:text-white hover:file:bg-white/20"
+                />
+              </label>
+              <Input
+                label="Light logo URL"
+                value={siteConfig.persistentUI.logoLightSrc}
+                onChange={(next) =>
+                  updateConfig((prev) => ({
+                    ...prev,
+                    persistentUI: { ...prev.persistentUI, logoLightSrc: next },
+                  }))
+                }
+              />
+              <label className="flex flex-col gap-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Upload dark mode logo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    e.currentTarget.value = '';
+                    void handleLogoDarkUpload(file);
+                  }}
+                  className="rounded-[10px] border border-white/15 bg-black/30 px-3 py-2 text-xs text-white/85 file:mr-3 file:rounded-[8px] file:border-0 file:bg-white/15 file:px-2.5 file:py-1.5 file:text-xs file:text-white hover:file:bg-white/20"
+                />
+              </label>
+              <Input
+                label="Dark logo URL"
+                value={siteConfig.persistentUI.logoDarkSrc}
+                onChange={(next) =>
+                  updateConfig((prev) => ({
+                    ...prev,
+                    persistentUI: { ...prev.persistentUI, logoDarkSrc: next },
+                  }))
+                }
+              />
+              <Input
+                label="Logo alt text"
+                value={siteConfig.persistentUI.logoAlt}
+                onChange={(next) =>
+                  updateConfig((prev) => ({
+                    ...prev,
+                    persistentUI: { ...prev.persistentUI, logoAlt: next },
+                  }))
+                }
+              />
+            </Card>
           </div>
         );
 
       case 'footer':
         return (
           <div className="grid gap-4">
-            <Card title="Footer + Social + Legal" subtitle="Email, address, links, socials">
+            <Card title="Footer + Social + Legal" subtitle="Brand, quick links, socials, CTA, and legal">
+              <Input
+                label="Brand title"
+                value={siteConfig.footer.brandTitle}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, footer: { ...prev.footer, brandTitle: next } }))}
+              />
+              <Textarea
+                label="Brand description"
+                value={siteConfig.footer.brandDescription}
+                rows={3}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, footer: { ...prev.footer, brandDescription: next } }))}
+              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input
+                  label="Quick links title"
+                  value={siteConfig.footer.quickLinksTitle}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, footer: { ...prev.footer, quickLinksTitle: next } }))}
+                />
+                <Input
+                  label="Follow section title"
+                  value={siteConfig.footer.followTitle}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, footer: { ...prev.footer, followTitle: next } }))}
+                />
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <Input
+                  label="Social icon background"
+                  type="color"
+                  value={siteConfig.footer.socialIconBackgroundColor}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      footer: { ...prev.footer, socialIconBackgroundColor: next },
+                    }))
+                  }
+                />
+                <Input
+                  label="Social icon border"
+                  type="color"
+                  value={siteConfig.footer.socialIconBorderColor}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      footer: { ...prev.footer, socialIconBorderColor: next },
+                    }))
+                  }
+                />
+                <Input
+                  label="Social icon color"
+                  type="color"
+                  value={siteConfig.footer.socialIconColor}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      footer: { ...prev.footer, socialIconColor: next },
+                    }))
+                  }
+                />
+              </div>
+              <Input
+                label="CTA title"
+                value={siteConfig.footer.ctaTitle}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, footer: { ...prev.footer, ctaTitle: next } }))}
+              />
+              <Textarea
+                label="CTA description"
+                value={siteConfig.footer.ctaDescription}
+                rows={3}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, footer: { ...prev.footer, ctaDescription: next } }))}
+              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input
+                  label="CTA button label"
+                  value={siteConfig.footer.ctaButtonLabel}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, footer: { ...prev.footer, ctaButtonLabel: next } }))}
+                />
+                <Input
+                  label="CTA button href"
+                  value={siteConfig.footer.ctaButtonHref}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, footer: { ...prev.footer, ctaButtonHref: next } }))}
+                />
+              </div>
               <Input
                 label="Footer email"
                 value={siteConfig.footer.email}
@@ -2566,19 +3099,34 @@ export const Dashboard: React.FC = () => {
                   }))
                 }
               />
-              <Input
-                label="Copyright text"
-                value={siteConfig.footer.copyrightText}
-                onChange={(next) =>
-                  updateConfig((prev) => ({
-                    ...prev,
-                    footer: {
-                      ...prev.footer,
-                      copyrightText: next,
-                    },
-                  }))
-                }
-              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input
+                  label="Copyright text"
+                  value={siteConfig.footer.copyrightText}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      footer: {
+                        ...prev.footer,
+                        copyrightText: next,
+                      },
+                    }))
+                  }
+                />
+                <Input
+                  label="Bottom note text"
+                  value={siteConfig.footer.bottomNote}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      footer: {
+                        ...prev.footer,
+                        bottomNote: next,
+                      },
+                    }))
+                  }
+                />
+              </div>
 
               <div className="space-y-2 rounded-[10px] border border-white/10 p-3">
                 <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Legal links</p>
@@ -2633,6 +3181,98 @@ export const Dashboard: React.FC = () => {
                 ))}
               </div>
 
+              <div className="space-y-3 rounded-[10px] border border-white/10 p-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Legal Pages</p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    label="Terms page title"
+                    value={siteConfig.legalPages.termsTitle}
+                    onChange={(next) =>
+                      updateConfig((prev) => ({
+                        ...prev,
+                        legalPages: { ...prev.legalPages, termsTitle: next },
+                      }))
+                    }
+                  />
+                  <Input
+                    label="Terms last updated"
+                    value={siteConfig.legalPages.termsLastUpdated}
+                    onChange={(next) =>
+                      updateConfig((prev) => ({
+                        ...prev,
+                        legalPages: { ...prev.legalPages, termsLastUpdated: next },
+                      }))
+                    }
+                  />
+                </div>
+                <Textarea
+                  label="Terms content"
+                  value={siteConfig.legalPages.termsContent}
+                  rows={6}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      legalPages: { ...prev.legalPages, termsContent: next },
+                    }))
+                  }
+                />
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    label="Privacy page title"
+                    value={siteConfig.legalPages.privacyTitle}
+                    onChange={(next) =>
+                      updateConfig((prev) => ({
+                        ...prev,
+                        legalPages: { ...prev.legalPages, privacyTitle: next },
+                      }))
+                    }
+                  />
+                  <Input
+                    label="Privacy last updated"
+                    value={siteConfig.legalPages.privacyLastUpdated}
+                    onChange={(next) =>
+                      updateConfig((prev) => ({
+                        ...prev,
+                        legalPages: { ...prev.legalPages, privacyLastUpdated: next },
+                      }))
+                    }
+                  />
+                </div>
+                <Textarea
+                  label="Privacy content"
+                  value={siteConfig.legalPages.privacyContent}
+                  rows={6}
+                  onChange={(next) =>
+                    updateConfig((prev) => ({
+                      ...prev,
+                      legalPages: { ...prev.legalPages, privacyContent: next },
+                    }))
+                  }
+                />
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    label="Last updated label"
+                    value={siteConfig.legalPages.lastUpdatedLabel}
+                    onChange={(next) =>
+                      updateConfig((prev) => ({
+                        ...prev,
+                        legalPages: { ...prev.legalPages, lastUpdatedLabel: next },
+                      }))
+                    }
+                  />
+                  <Input
+                    label="Back button label"
+                    value={siteConfig.legalPages.backToHomeLabel}
+                    onChange={(next) =>
+                      updateConfig((prev) => ({
+                        ...prev,
+                        legalPages: { ...prev.legalPages, backToHomeLabel: next },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
               <div className="space-y-3 rounded-[10px] border border-white/10 bg-black/20 p-3">
                 <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Footer nav links</p>
                 <p className="text-xs text-white/56">
@@ -2645,6 +3285,426 @@ export const Dashboard: React.FC = () => {
                 >
                   Edit Navigation Labels
                 </button>
+              </div>
+            </Card>
+          </div>
+        );
+
+      case 'contact':
+        return (
+          <div className="grid gap-4">
+            <Card title="Contact Page Hero" subtitle="Hero section text and labels">
+              <Input
+                label="Hero line 1"
+                value={siteConfig.contactPage.heroTitleLine1}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, heroTitleLine1: next } }))}
+              />
+              <Input
+                label="Hero line 2"
+                value={siteConfig.contactPage.heroTitleLine2}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, heroTitleLine2: next } }))}
+              />
+              <Textarea
+                label="Hero subtitle"
+                value={siteConfig.contactPage.heroSubtitle}
+                rows={3}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, heroSubtitle: next } }))}
+              />
+            </Card>
+
+            <Card title="Direct Contact Card" subtitle="Phone, email, and office information">
+              <Input
+                label="Card title"
+                value={siteConfig.contactPage.directContactTitle}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, directContactTitle: next } }))}
+              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input
+                  label="Phone label"
+                  value={siteConfig.contactPage.phoneLabel}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, phoneLabel: next } }))}
+                />
+                <Input
+                  label="Phone number"
+                  value={siteConfig.contactPage.phoneNumber}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, phoneNumber: next } }))}
+                />
+                <Input
+                  label="Email label"
+                  value={siteConfig.contactPage.emailLabel}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, emailLabel: next } }))}
+                />
+                <Input
+                  label="Email address"
+                  value={siteConfig.contactPage.emailAddress}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, emailAddress: next } }))}
+                />
+                <Input
+                  label="Office label"
+                  value={siteConfig.contactPage.officeLabel}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, officeLabel: next } }))}
+                />
+                <Input
+                  label="Office address"
+                  value={siteConfig.contactPage.officeAddress}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, officeAddress: next } }))}
+                />
+              </div>
+              <Textarea
+                label="Availability text"
+                value={siteConfig.contactPage.availabilityText}
+                rows={2}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, availabilityText: next } }))}
+              />
+            </Card>
+
+            <Card title="Response Time Card" subtitle="Expected response time display">
+              <Input
+                label="Label"
+                value={siteConfig.contactPage.responseTimeLabel}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, responseTimeLabel: next } }))}
+              />
+              <Input
+                label="Time value"
+                value={siteConfig.contactPage.responseTimeValue}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, responseTimeValue: next } }))}
+              />
+              <Textarea
+                label="Description"
+                value={siteConfig.contactPage.responseTimeDescription}
+                rows={2}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, responseTimeDescription: next } }))}
+              />
+            </Card>
+
+            <Card title="Contact Form Section" subtitle="Form labels, placeholders, and button text">
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input
+                  label="Form title"
+                  value={siteConfig.contactPage.formTitle}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formTitle: next } }))}
+                />
+                <Input
+                  label="Form subtitle"
+                  value={siteConfig.contactPage.formSubtitle}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formSubtitle: next } }))}
+                />
+                <Input
+                  label="Name label"
+                  value={siteConfig.contactPage.formNameLabel}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formNameLabel: next } }))}
+                />
+                <Input
+                  label="Name placeholder"
+                  value={siteConfig.contactPage.formNamePlaceholder}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formNamePlaceholder: next } }))}
+                />
+                <Input
+                  label="Email label"
+                  value={siteConfig.contactPage.formEmailLabel}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formEmailLabel: next } }))}
+                />
+                <Input
+                  label="Email placeholder"
+                  value={siteConfig.contactPage.formEmailPlaceholder}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formEmailPlaceholder: next } }))}
+                />
+                <Input
+                  label="Subject label"
+                  value={siteConfig.contactPage.formSubjectLabel}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formSubjectLabel: next } }))}
+                />
+                <Input
+                  label="Subject placeholder"
+                  value={siteConfig.contactPage.formSubjectPlaceholder}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formSubjectPlaceholder: next } }))}
+                />
+                <Input
+                  label="Message label"
+                  value={siteConfig.contactPage.formMessageLabel}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formMessageLabel: next } }))}
+                />
+                <Input
+                  label="Message placeholder"
+                  value={siteConfig.contactPage.formMessagePlaceholder}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formMessagePlaceholder: next } }))}
+                />
+              </div>
+              <Textarea
+                label="Privacy text"
+                value={siteConfig.contactPage.formPrivacyText}
+                rows={2}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formPrivacyText: next } }))}
+              />
+              <Input
+                label="Privacy link"
+                value={siteConfig.contactPage.formPrivacyLink}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formPrivacyLink: next } }))}
+              />
+              <Input
+                label="Submit button text"
+                value={siteConfig.contactPage.formSubmitButton}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formSubmitButton: next } }))}
+              />
+            </Card>
+
+            <Card title="Social Channels Section" subtitle="Social links section content">
+              <Input
+                label="Section label"
+                value={siteConfig.contactPage.socialSectionLabel}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, socialSectionLabel: next } }))}
+              />
+              <Input
+                label="Section title"
+                value={siteConfig.contactPage.socialSectionTitle}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, socialSectionTitle: next } }))}
+              />
+              <Textarea
+                label="Section description"
+                value={siteConfig.contactPage.socialSectionDescription}
+                rows={2}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, socialSectionDescription: next } }))}
+              />
+            </Card>
+
+            <Card title="Contact Cards" subtitle="Add, edit, or remove contact cards">
+              {siteConfig.contactPage.contactCards.map((card) => (
+                <div key={card.id} className={listItemClass}>
+                  <Input
+                    label="Title"
+                    value={card.title}
+                    onChange={(next) => {
+                      updateConfig((prev) => ({
+                        ...prev,
+                        contactPage: {
+                          ...prev.contactPage,
+                          contactCards: prev.contactPage.contactCards.map((c) =>
+                            c.id === card.id ? { ...c, title: next } : c,
+                          ),
+                        },
+                      }));
+                    }}
+                  />
+                  <Input
+                    label="Subtitle"
+                    value={card.subtitle}
+                    onChange={(next) => {
+                      updateConfig((prev) => ({
+                        ...prev,
+                        contactPage: {
+                          ...prev.contactPage,
+                          contactCards: prev.contactPage.contactCards.map((c) =>
+                            c.id === card.id ? { ...c, subtitle: next } : c,
+                          ),
+                        },
+                      }));
+                    }}
+                  />
+                  <Input
+                    label="Icon"
+                    value={card.icon}
+                    onChange={(next) => {
+                      updateConfig((prev) => ({
+                        ...prev,
+                        contactPage: {
+                          ...prev.contactPage,
+                          contactCards: prev.contactPage.contactCards.map((c) =>
+                            c.id === card.id ? { ...c, icon: next as any } : c,
+                          ),
+                        },
+                      }));
+                    }}
+                  />
+                  <Input
+                    label="Href"
+                    value={card.href}
+                    onChange={(next) => {
+                      updateConfig((prev) => ({
+                        ...prev,
+                        contactPage: {
+                          ...prev.contactPage,
+                          contactCards: prev.contactPage.contactCards.map((c) =>
+                            c.id === card.id ? { ...c, href: next } : c,
+                          ),
+                        },
+                      }));
+                    }}
+                  />
+                  <Input
+                    label="Action label"
+                    value={card.action}
+                    onChange={(next) => {
+                      updateConfig((prev) => ({
+                        ...prev,
+                        contactPage: {
+                          ...prev.contactPage,
+                          contactCards: prev.contactPage.contactCards.map((c) =>
+                            c.id === card.id ? { ...c, action: next } : c,
+                          ),
+                        },
+                      }));
+                    }}
+                  />
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input
+                      label="Color"
+                      value={card.color}
+                      onChange={(next) => {
+                      updateConfig((prev) => ({
+                        ...prev,
+                        contactPage: {
+                          ...prev.contactPage,
+                          contactCards: prev.contactPage.contactCards.map((c) =>
+                            c.id === card.id ? { ...c, color: next } : c,
+                          ),
+                        },
+                      }));
+                    }}
+                    />
+                    <Input
+                      label="Hover color"
+                      value={card.hoverColor}
+                      onChange={(next) => {
+                        updateConfig((prev) => ({
+                          ...prev,
+                          contactPage: {
+                            ...prev.contactPage,
+                            contactCards: prev.contactPage.contactCards.map((c) =>
+                              c.id === card.id ? { ...c, hoverColor: next } : c,
+                            ),
+                          },
+                        }));
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-4 mt-2">
+                    <Toggle
+                      label="Visible"
+                      checked={card.visible}
+                      onChange={(next) => {
+                        updateConfig((prev) => ({
+                          ...prev,
+                          contactPage: {
+                            ...prev.contactPage,
+                            contactCards: prev.contactPage.contactCards.map((c) =>
+                              c.id === card.id ? { ...c, visible: next } : c,
+                            ),
+                          },
+                        }));
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateConfig((prev) => ({
+                          ...prev,
+                          contactPage: {
+                            ...prev.contactPage,
+                            contactCards: prev.contactPage.contactCards.filter((c) => c.id !== card.id),
+                          },
+                        }));
+                      }}
+                      className="rounded-[8px] border border-[#111217]/20 bg-[#111217]/6 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217] hover:bg-[#111217]/10"
+                    >
+                      Remove Card
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const newCard = {
+                    id: `contact-card-${Date.now()}`,
+                    title: 'New Contact Card',
+                    subtitle: 'Add a description',
+                    icon: 'mail',
+                    href: '#',
+                    action: 'Send Message',
+                    color: '#ffffff',
+                    hoverColor: '#000000',
+                    visible: true,
+                  };
+                  updateConfig((prev) => ({
+                    ...prev,
+                    contactPage: {
+                      ...prev.contactPage,
+                      contactCards: [...prev.contactPage.contactCards, newCard],
+                    },
+                  }));
+                }}
+                className="rounded-[8px] border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
+              >
+                Add Contact Card
+              </button>
+            </Card>
+
+            <Card title="Success Messages" subtitle="Form submission feedback messages">
+              <Input
+                label="Success title"
+                value={siteConfig.contactPage.formSuccessTitle}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formSuccessTitle: next } }))}
+              />
+              <Textarea
+                label="Success message"
+                value={siteConfig.contactPage.formSuccessMessage}
+                rows={3}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, formSuccessMessage: next } }))}
+              />
+            </Card>
+
+            <Card title="Validation Messages" subtitle="Error messages for form validation">
+              <Input
+                label="Required field message"
+                value={siteConfig.contactPage.validationRequired}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, validationRequired: next } }))}
+              />
+              <Input
+                label="Invalid email message"
+                value={siteConfig.contactPage.validationInvalidEmail}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, validationInvalidEmail: next } }))}
+              />
+              <Input
+                label="Min length message"
+                value={siteConfig.contactPage.validationMinLength}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, validationMinLength: next } }))}
+              />
+            </Card>
+
+            <Card title="Security Settings" subtitle="Honeypot and rate limiting configuration">
+              <Input
+                label="Honeypot field name"
+                value={siteConfig.contactPage.honeypotFieldName}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, honeypotFieldName: next } }))}
+              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input
+                  label="Max message length"
+                  type="number"
+                  min={100}
+                  max={10000}
+                  step={100}
+                  value={siteConfig.contactPage.maxMessageLength}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, maxMessageLength: toSafeNumberInRange(next, 5000, 100, 10000) } }))}
+                />
+                <Input
+                  label="Min message length"
+                  type="number"
+                  min={10}
+                  max={1000}
+                  step={10}
+                  value={siteConfig.contactPage.minMessageLength}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, minMessageLength: toSafeNumberInRange(next, 50, 10, 1000) } }))}
+                />
+                <Input
+                  label="Rate limit minutes"
+                  type="number"
+                  min={1}
+                  max={60}
+                  step={1}
+                  value={siteConfig.contactPage.rateLimitMinutes}
+                  onChange={(next) => updateConfig((prev) => ({ ...prev, contactPage: { ...prev.contactPage, rateLimitMinutes: toSafeNumberInRange(next, 5, 1, 60) } }))}
+                />
               </div>
             </Card>
           </div>
@@ -2887,6 +3947,19 @@ export const Dashboard: React.FC = () => {
                 value={siteConfig.scene05.role}
                 onChange={(next) => updateConfig((prev) => ({ ...prev, scene05: { ...prev.scene05, role: next } }))}
               />
+              <label className="flex flex-col gap-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Upload portrait image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    e.currentTarget.value = '';
+                    void handlePortraitUpload(file);
+                  }}
+                  className="rounded-[10px] border border-white/15 bg-black/30 px-3 py-2 text-xs text-white/85 file:mr-3 file:rounded-[8px] file:border-0 file:bg-white/15 file:px-2.5 file:py-1.5 file:text-xs file:text-white hover:file:bg-white/20"
+                />
+              </label>
               <Input
                 label="Portrait image URL"
                 value={siteConfig.scene05.portraitImage}
@@ -3005,6 +4078,20 @@ export const Dashboard: React.FC = () => {
                       }
                     />
 
+                    <label className="flex flex-col gap-1.5">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Upload badge / logo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] ?? null;
+                          e.currentTarget.value = '';
+                          void handleCertificationLogoUpload(item.id, file);
+                        }}
+                        className="rounded-[10px] border border-white/15 bg-black/30 px-3 py-2 text-xs text-white/85 file:mr-3 file:rounded-[8px] file:border-0 file:bg-white/15 file:px-2.5 file:py-1.5 file:text-xs file:text-white hover:file:bg-white/20"
+                      />
+                    </label>
+
                     <Input
                       label="Badge / logo URL"
                       value={item.logoSrc}
@@ -3121,6 +4208,88 @@ export const Dashboard: React.FC = () => {
                   }))
                 }
               />
+
+              <div className="space-y-3 rounded-[12px] border border-white/10 bg-black/20 p-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">
+                  Company Logos
+                </p>
+
+                {siteConfig.scene05.companyLogos.map((item) => (
+                  <div key={item.id} className={listItemClass}>
+                    <Input
+                      label="Name"
+                      value={item.name}
+                      onChange={(next) => updateScene05LogoItem(item.id, (prev) => ({ ...prev, name: next }))}
+                    />
+                    <Input
+                      label="Link URL"
+                      value={item.href}
+                      onChange={(next) => updateScene05LogoItem(item.id, (prev) => ({ ...prev, href: next }))}
+                    />
+                    <label className="flex flex-col gap-1.5">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Upload logo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] ?? null;
+                          e.currentTarget.value = '';
+                          void handleCompanyLogoUpload(item.id, file);
+                        }}
+                        className="rounded-[10px] border border-white/15 bg-black/30 px-3 py-2 text-xs text-white/85 file:mr-3 file:rounded-[8px] file:border-0 file:bg-white/15 file:px-2.5 file:py-1.5 file:text-xs file:text-white hover:file:bg-white/20"
+                      />
+                    </label>
+                    <Input
+                      label="Logo URL"
+                      value={item.logoSrc}
+                      onChange={(next) => updateScene05LogoItem(item.id, (prev) => ({ ...prev, logoSrc: next }))}
+                    />
+                    <Toggle
+                      label="Visible"
+                      checked={item.visible}
+                      onChange={(next) => updateScene05LogoItem(item.id, (prev) => ({ ...prev, visible: next }))}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateConfig((prev) => ({
+                          ...prev,
+                          scene05: {
+                            ...prev.scene05,
+                            companyLogos: prev.scene05.companyLogos.filter((entry) => entry.id !== item.id),
+                          },
+                        }));
+                      }}
+                      className="rounded-[8px] border border-[#111217]/20 bg-[#111217]/6 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217] hover:bg-[#111217]/10"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newLogo: SiteScene05LogoItem = {
+                      id: `company-${Date.now()}`,
+                      name: 'New Company',
+                      logoSrc: '',
+                      href: '#',
+                      visible: true,
+                    };
+                    updateConfig((prev) => ({
+                      ...prev,
+                      scene05: {
+                        ...prev.scene05,
+                        companyLogos: [...prev.scene05.companyLogos, newLogo],
+                      },
+                    }));
+                  }}
+                  className="rounded-[8px] border border-white/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white hover:bg-white/10"
+                >
+                  Add Company Logo
+                </button>
+              </div>
 
               <div className="space-y-3 rounded-[12px] border border-white/10 bg-black/20 p-3">
                 <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">
@@ -4912,6 +6081,287 @@ export const Dashboard: React.FC = () => {
           </div>
         );
 
+      case 'crt':
+        return (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card title="CRT Effect Controls" subtitle="Master controls for retro screen effects">
+              <Toggle
+                label="Enable CRT Effect"
+                checked={siteConfig.crt.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, enabled: next } }))}
+              />
+              <SelectInput
+                label="Intensity"
+                value={siteConfig.crt.intensity}
+                options={[
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' },
+                ]}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, intensity: next as 'low' | 'medium' | 'high' } }))}
+              />
+            </Card>
+
+            <Card title="Screen Geometry" subtitle="Curvature and barrel distortion effects">
+              <Toggle
+                label="Enable Screen Geometry"
+                checked={siteConfig.crt.screenGeometry.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, screenGeometry: { ...prev.crt.screenGeometry, enabled: next } } }))}
+              />
+              <Input
+                label="Curvature"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.screenGeometry.curvature}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, screenGeometry: { ...prev.crt.screenGeometry, curvature: toSafeNumberInRange(next, 0.5, 0, 1) } } }))}
+              />
+            </Card>
+
+            <Card title="Barrel Curvature" subtitle="Screen edge distortion">
+              <Toggle
+                label="Enable Barrel Curvature"
+                checked={siteConfig.crt.barrelCurvature.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, barrelCurvature: { ...prev.crt.barrelCurvature, enabled: next } } }))}
+              />
+              <Input
+                label="Intensity"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.barrelCurvature.intensity}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, barrelCurvature: { ...prev.crt.barrelCurvature, intensity: toSafeNumberInRange(next, 0.3, 0, 1) } } }))}
+              />
+            </Card>
+
+            <Card title="Vignette" subtitle="Dark edges effect">
+              <Toggle
+                label="Enable Vignette"
+                checked={siteConfig.crt.vignette.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, vignette: { ...prev.crt.vignette, enabled: next } } }))}
+              />
+              <Input
+                label="Opacity"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.vignette.opacity}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, vignette: { ...prev.crt.vignette, opacity: toSafeNumberInRange(next, 0.6, 0, 1) } } }))}
+              />
+              <Input
+                label="Size"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.vignette.size}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, vignette: { ...prev.crt.vignette, size: toSafeNumberInRange(next, 0.8, 0, 1) } } }))}
+              />
+            </Card>
+
+            <Card title="Analog Signal" subtitle="Interference and sync effects">
+              <Toggle
+                label="Enable Analog Signal"
+                checked={siteConfig.crt.analogSignal.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, analogSignal: { ...prev.crt.analogSignal, enabled: next } } }))}
+              />
+              <Input
+                label="Interference"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.analogSignal.interference}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, analogSignal: { ...prev.crt.analogSignal, interference: toSafeNumberInRange(next, 0.2, 0, 1) } } }))}
+              />
+              <Input
+                label="Sync"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.analogSignal.sync}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, analogSignal: { ...prev.crt.analogSignal, sync: toSafeNumberInRange(next, 0.1, 0, 1) } } }))}
+              />
+            </Card>
+
+            <Card title="Color Bleed" subtitle="Chromatic aberration and color bleeding">
+              <Toggle
+                label="Enable Color Bleed"
+                checked={siteConfig.crt.colorBleed.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, colorBleed: { ...prev.crt.colorBleed, enabled: next } } }))}
+              />
+              <Input
+                label="Intensity"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.colorBleed.intensity}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, colorBleed: { ...prev.crt.colorBleed, intensity: toSafeNumberInRange(next, 0.15, 0, 1) } } }))}
+              />
+              <Input
+                label="Chromatic Aberration"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.colorBleed.chromaticAberration}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, colorBleed: { ...prev.crt.colorBleed, chromaticAberration: toSafeNumberInRange(next, 0.1, 0, 1) } } }))}
+              />
+            </Card>
+
+            <Card title="Static Noise" subtitle="Random noise overlay">
+              <Toggle
+                label="Enable Static Noise"
+                checked={siteConfig.crt.staticNoise.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, staticNoise: { ...prev.crt.staticNoise, enabled: next } } }))}
+              />
+              <Input
+                label="Intensity"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.staticNoise.intensity}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, staticNoise: { ...prev.crt.staticNoise, intensity: toSafeNumberInRange(next, 0.15, 0, 1) } } }))}
+              />
+              <Input
+                label="Speed"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.staticNoise.speed}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, staticNoise: { ...prev.crt.staticNoise, speed: toSafeNumberInRange(next, 0.5, 0, 1) } } }))}
+              />
+            </Card>
+
+            <Card title="Phosphor Display" subtitle="Phosphor persistence and decay">
+              <Toggle
+                label="Enable Phosphor Display"
+                checked={siteConfig.crt.phosphorDisplay.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, phosphorDisplay: { ...prev.crt.phosphorDisplay, enabled: next } } }))}
+              />
+              <Input
+                label="Persistence"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.phosphorDisplay.persistence}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, phosphorDisplay: { ...prev.crt.phosphorDisplay, persistence: toSafeNumberInRange(next, 0.3, 0, 1) } } }))}
+              />
+              <Input
+                label="Decay"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.phosphorDisplay.decay}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, phosphorDisplay: { ...prev.crt.phosphorDisplay, decay: toSafeNumberInRange(next, 0.2, 0, 1) } } }))}
+              />
+            </Card>
+
+            <Card title="Scanlines" subtitle="Horizontal line pattern">
+              <Toggle
+                label="Enable Scanlines"
+                checked={siteConfig.crt.scanlines.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, scanlines: { ...prev.crt.scanlines, enabled: next } } }))}
+              />
+              <Input
+                label="Intensity"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.scanlines.intensity}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, scanlines: { ...prev.crt.scanlines, intensity: toSafeNumberInRange(next, 0.4, 0, 1) } } }))}
+              />
+              <Input
+                label="Thickness (px)"
+                type="number"
+                min={0}
+                max={5}
+                step={0.5}
+                value={siteConfig.crt.scanlines.thickness}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, scanlines: { ...prev.crt.scanlines, thickness: toSafeNumberInRange(next, 1, 0, 5) } } }))}
+              />
+              <Input
+                label="Gap (px)"
+                type="number"
+                min={0}
+                max={10}
+                step={0.5}
+                value={siteConfig.crt.scanlines.gap}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, scanlines: { ...prev.crt.scanlines, gap: toSafeNumberInRange(next, 2, 0, 10) } } }))}
+              />
+            </Card>
+
+            <Card title="Phosphor Mask" subtitle="RGB pixel mask pattern">
+              <Toggle
+                label="Enable Phosphor Mask"
+                checked={siteConfig.crt.phosphorMask.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, phosphorMask: { ...prev.crt.phosphorMask, enabled: next } } }))}
+              />
+              <SelectInput
+                label="Pattern"
+                value={siteConfig.crt.phosphorMask.pattern}
+                options={[
+                  { value: 'none', label: 'None' },
+                  { value: 'rgb', label: 'RGB' },
+                  { value: 'aperture', label: 'Aperture' },
+                  { value: 'slot', label: 'Slot' },
+                ]}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, phosphorMask: { ...prev.crt.phosphorMask, pattern: next as 'none' | 'rgb' | 'aperture' | 'slot' } } }))}
+              />
+              <Input
+                label="Intensity"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.phosphorMask.intensity}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, phosphorMask: { ...prev.crt.phosphorMask, intensity: toSafeNumberInRange(next, 0.3, 0, 1) } } }))}
+              />
+            </Card>
+
+            <Card title="Phosphor Glow" subtitle="Screen glow effect">
+              <Toggle
+                label="Enable Phosphor Glow"
+                checked={siteConfig.crt.phosphorGlow.enabled}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, phosphorGlow: { ...prev.crt.phosphorGlow, enabled: next } } }))}
+              />
+              <Input
+                label="Intensity"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.phosphorGlow.intensity}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, phosphorGlow: { ...prev.crt.phosphorGlow, intensity: toSafeNumberInRange(next, 0.25, 0, 1) } } }))}
+              />
+              <Input
+                label="Spread"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={siteConfig.crt.phosphorGlow.spread}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, phosphorGlow: { ...prev.crt.phosphorGlow, spread: toSafeNumberInRange(next, 0.5, 0, 1) } } }))}
+              />
+              <Input
+                label="Color"
+                value={siteConfig.crt.phosphorGlow.color}
+                onChange={(next) => updateConfig((prev) => ({ ...prev, crt: { ...prev.crt, phosphorGlow: { ...prev.crt.phosphorGlow, color: next } } }))}
+              />
+            </Card>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -5021,7 +6471,7 @@ export const Dashboard: React.FC = () => {
                     slug: `new-article-${Date.now()}`,
                     excerpt: 'Write a short summary for this article.',
                     content: 'Write your article body here.',
-                    coverImage: '/frames/scene-03-screen-entry/ezgif-frame-001.jpg',
+                    coverImage: '/frames/scene-03-screen-entry/ezgif-frame-001.avif',
                     author: 'Your Name',
                     category: 'Insights',
                     tags: ['insight'],
@@ -5087,7 +6537,7 @@ export const Dashboard: React.FC = () => {
                       onClick={() => setActiveArticleId(article.id)}
                       className={`w-full rounded-[14px] border p-3 text-left transition-all ${
                         isActive
-                          ? 'border-[#b6f45b]/45 bg-[#b6f45b]/14 text-white'
+                          ? 'border-[#000000]/45 bg-[#000000]/14 text-white'
                           : 'border-white/12 bg-white/[0.04] text-white hover:border-white/24 hover:bg-white/[0.08]'
                       }`}
                     >
@@ -5177,6 +6627,20 @@ export const Dashboard: React.FC = () => {
                   }
                 />
               </div>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">Upload cover image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    e.currentTarget.value = '';
+                    void handleArticleCoverUpload(activeArticle.id, file);
+                  }}
+                  className="rounded-[10px] border border-white/15 bg-black/30 px-3 py-2 text-xs text-white/85 file:mr-3 file:rounded-[8px] file:border-0 file:bg-white/15 file:px-2.5 file:py-1.5 file:text-xs file:text-white hover:file:bg-white/20"
+                />
+              </label>
 
               <Input
                 label="Cover Image URL"
@@ -5268,7 +6732,7 @@ export const Dashboard: React.FC = () => {
                 onClick={() => setActiveSettingsPanel(panel.id)}
                 className={`rounded-[11px] border px-3 py-2 text-left transition-all ${
                   activeSettingsPanel === panel.id
-                    ? 'border-[#b6f45b]/45 bg-[#b6f45b]/14 text-white'
+                    ? 'border-[#000000]/45 bg-[#000000]/14 text-white'
                     : 'border-white/12 bg-white/[0.04] text-white/78 hover:border-white/20 hover:bg-white/[0.08]'
                 }`}
               >
@@ -5411,6 +6875,292 @@ export const Dashboard: React.FC = () => {
             </aside>
           </section>
         ) : null}
+
+        {activeSettingsPanel === 'storage' ? (
+          <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <Card title="Storage & Backup" subtitle="Manage data storage, backups, and exports">
+              <div className="space-y-4">
+                {/* API Diagnostics Panel */}
+                <div className="rounded-[12px] border border-blue-500/22 bg-blue-500/10 px-3 py-3">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-blue-300">API Health</p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const diagnostics = await getApiDiagnostics();
+                        setApiDiagnostics(diagnostics);
+                      }}
+                      className="text-[10px] px-2 py-1 rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 font-mono"
+                    >
+                      Check
+                    </button>
+                  </div>
+                  {apiDiagnostics ? (
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/72">Config Endpoint</span>
+                        <span className={`font-semibold ${apiDiagnostics.configEndpoint ? 'text-green-400' : 'text-red-400'}`}>
+                          {apiDiagnostics.configEndpoint ? '✓ OK' : '✗ Error'}
+                        </span>
+                      </div>
+                      {apiDiagnostics.healthEndpoint && (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-white/72">Status</span>
+                            <span className={`font-semibold uppercase ${
+                              apiDiagnostics.healthEndpoint.status === 'healthy' ? 'text-green-400' :
+                              apiDiagnostics.healthEndpoint.status === 'critical' ? 'text-red-400' :
+                              'text-yellow-400'
+                            }`}>
+                              {apiDiagnostics.healthEndpoint.status}
+                            </span>
+                          </div>
+                          {apiDiagnostics.healthEndpoint.storage && (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span className="text-white/72">Vercel KV</span>
+                                <span className={apiDiagnostics.healthEndpoint.storage.vercelKv?.configured ? 'text-green-400' : 'text-white/52'}>
+                                  {apiDiagnostics.healthEndpoint.storage.vercelKv?.configured ? '✓ Configured' : '○ Not configured'}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-white/72">Upstash Redis</span>
+                                <span className={apiDiagnostics.healthEndpoint.storage.upstashRedis?.configured ? 'text-green-400' : 'text-white/52'}>
+                                  {apiDiagnostics.healthEndpoint.storage.upstashRedis?.configured ? '✓ Configured' : '○ Not configured'}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                        </>
+                      )}
+                      {apiDiagnostics.errorMessages.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-blue-500/20">
+                          <p className="text-red-400 text-[9px] font-mono">Issues:</p>
+                          {apiDiagnostics.errorMessages.map((msg, idx) => (
+                            <p key={idx} className="text-red-300 text-[9px] mt-1">• {msg}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-white/56">Click "Check" to diagnose API health</p>
+                  )}
+                </div>
+
+                <div className="rounded-[12px] border border-white/12 bg-black/22 px-3 py-3">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/56">Storage Status</p>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Primary Storage</span>
+                      <span className={`text-xs font-semibold ${storageInfo.sizes.primary > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {storageInfo.sizes.primary > 0 ? 'Active' : 'Empty'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Backup Storage</span>
+                      <span className={`text-xs font-semibold ${storageInfo.sizes.backup > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {storageInfo.sizes.backup > 0 ? 'Active' : 'Empty'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Session Storage</span>
+                      <span className={`text-xs font-semibold ${storageInfo.sizes.session > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {storageInfo.sizes.session > 0 ? 'Active' : 'Empty'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Recovery Point</span>
+                      <span className={`text-xs font-semibold ${storageInfo.sizes.recovery > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {storageInfo.sizes.recovery > 0 ? 'Available' : 'None'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Version History</span>
+                      <span className={`text-xs font-semibold ${storageInfo.historyCount > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {storageInfo.historyCount > 0 ? `${storageInfo.historyCount} saved` : 'Empty'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[12px] border border-white/12 bg-black/22 px-3 py-3">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/56">Storage Size</p>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Primary</span>
+                      <span className="text-xs font-semibold text-white">{(storageInfo.sizes.primary / 1024).toFixed(2)} KB</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Backup</span>
+                      <span className="text-xs font-semibold text-white">{(storageInfo.sizes.backup / 1024).toFixed(2)} KB</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Session</span>
+                      <span className="text-xs font-semibold text-white">{(storageInfo.sizes.session / 1024).toFixed(2)} KB</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Recovery</span>
+                      <span className="text-xs font-semibold text-white">{(storageInfo.sizes.recovery / 1024).toFixed(2)} KB</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">History</span>
+                      <span className="text-xs font-semibold text-white">{((storageInfo.sizes.history ?? 0) / 1024).toFixed(2)} KB</span>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-white/10">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-white/72">Total</span>
+                        <span className="text-sm font-bold text-white">{(storageInfo.total / 1024).toFixed(2)} KB</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[12px] border border-white/12 bg-black/22 px-3 py-3">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/56">Save History</p>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Last Saved</span>
+                      <span className="text-xs font-semibold text-white">
+                        {storageInfo.metadata.lastSaved > 0 ? new Date(storageInfo.metadata.lastSaved).toLocaleString() : 'Never'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Last Backup</span>
+                      <span className="text-xs font-semibold text-white">
+                        {storageInfo.metadata.lastBackup > 0 ? new Date(storageInfo.metadata.lastBackup).toLocaleString() : 'Never'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Save Count</span>
+                      <span className="text-xs font-semibold text-white">{storageInfo.metadata.saveCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-white/72">Version</span>
+                      <span className="text-xs font-semibold text-white">{storageInfo.metadata.version}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => exportStorage()}
+                    className="flex items-center justify-center gap-2 rounded-[10px] border border-white/14 bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-white/[0.12]"
+                  >
+                    <DownloadIcon size={16} />
+                    Export Package
+                  </button>
+                  <label className="flex items-center justify-center gap-2 rounded-[10px] border border-white/14 bg-white/[0.06] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-white/[0.12] cursor-pointer">
+                    <UploadIcon size={16} />
+                    Import Package
+                    <input
+                      type="file"
+                      accept=".json"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const data = event.target?.result as string;
+                            if (importStorage(data)) {
+                              alert('Customization package imported successfully!');
+                            } else {
+                              alert('Failed to import package. Please check the file format.');
+                            }
+                          };
+                          reader.readAsText(file);
+                        }
+                        e.currentTarget.value = '';
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+                        resetSiteConfig();
+                        alert('All data has been reset to default.');
+                      }
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-[10px] border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 transition-all hover:bg-red-500/20"
+                  >
+                    <RotateCcwIcon size={16} />
+                    Reset All Data
+                  </button>
+                </div>
+
+                <div className="rounded-[12px] border border-white/12 bg-black/22 px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/56">Version History</p>
+                    <span className="text-xs text-white/52">{versionHistory.length} snapshots</span>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {versionHistory.length > 0 ? (
+                      versionHistory.slice(0, 5).map((version) => (
+                        <div key={version.id} className="rounded-[10px] border border-white/10 bg-white/[0.03] px-3 py-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-medium text-white">{version.label}</p>
+                              <p className="mt-0.5 text-[11px] text-white/56">
+                                {new Date(version.savedAt).toLocaleString()} · {(version.size / 1024).toFixed(2)} KB
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`Restore ${version.label}? This will replace the current dashboard data.`)) {
+                                  const restored = restoreVersion(version.id);
+                                  if (restored) {
+                                    setUploadMessage(`${version.label} restored successfully.`);
+                                    setHasUnsavedChanges(true);
+                                  } else {
+                                    setUploadError('Failed to restore the selected version.');
+                                  }
+                                }
+                              }}
+                              className="rounded-[8px] border border-white/14 bg-white/[0.06] px-2.5 py-1 text-[11px] text-white transition-all hover:bg-white/[0.12]"
+                            >
+                              Restore
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-white/56">No saved versions yet. Every successful save creates a snapshot.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <aside className="rounded-[18px] border border-white/12 bg-white/[0.04] p-4">
+              <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-white/56">Storage Tips</p>
+              <div className="mt-3 space-y-3">
+                <div className="rounded-[12px] border border-white/12 bg-black/22 px-3 py-2">
+                  <p className="text-xs text-white/72 leading-relaxed">
+                    <strong className="text-white">Auto-Backup:</strong> Your data is automatically backed up every 10 saves.
+                  </p>
+                </div>
+                <div className="rounded-[12px] border border-white/12 bg-black/22 px-3 py-2">
+                  <p className="text-xs text-white/72 leading-relaxed">
+                    <strong className="text-white">Export Regularly:</strong> Download backups before major changes.
+                  </p>
+                </div>
+                <div className="rounded-[12px] border border-white/12 bg-black/22 px-3 py-2">
+                  <p className="text-xs text-white/72 leading-relaxed">
+                    <strong className="text-white">Multi-Layer:</strong> Data is stored in primary, backup, and session layers.
+                  </p>
+                </div>
+                <div className="rounded-[12px] border border-white/12 bg-black/22 px-3 py-2">
+                  <p className="text-xs text-white/72 leading-relaxed">
+                    <strong className="text-white">Recovery:</strong> Automatic recovery points created periodically.
+                  </p>
+                </div>
+              </div>
+            </aside>
+          </section>
+        ) : null}
       </div>
     );
   };
@@ -5476,7 +7226,7 @@ export const Dashboard: React.FC = () => {
               <div key={point.label} className="flex flex-col items-center gap-2">
                 <div className="flex h-[140px] w-full items-end rounded-[8px] bg-white/[0.06] p-1">
                   <div
-                    className="w-full rounded-[6px] bg-[#b6f45b]"
+                    className="w-full rounded-[6px] bg-[#000000]"
                     style={{ height: `${Math.max(8, (point.visitors / maxTrendVisitors) * 100)}%` }}
                   />
                 </div>
@@ -5497,7 +7247,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div className="mt-2 h-2 rounded-full bg-white/10">
                     <div
-                      className="h-2 rounded-full bg-[#b6f45b]"
+                      className="h-2 rounded-full bg-[#000000]"
                       style={{ width: `${Math.max(6, (channel.sessions / maxSessions) * 100)}%` }}
                     />
                   </div>
@@ -5576,7 +7326,7 @@ export const Dashboard: React.FC = () => {
                   onClick={() => setMessageFilter(option.id as 'all' | SiteMessageStatus)}
                   className={`rounded-[999px] border px-2.5 py-1 text-[11px] ${
                     messageFilter === option.id
-                      ? 'border-[#b6f45b]/45 bg-[#b6f45b]/16 text-[#d7ff9d]'
+                      ? 'border-[#000000]/45 bg-[#000000]/16 text-[#ffffff]'
                       : 'border-white/14 bg-white/[0.04] text-white/70 hover:bg-white/[0.09]'
                   }`}
                 >
@@ -5585,29 +7335,56 @@ export const Dashboard: React.FC = () => {
               ))}
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                const now = new Date().toISOString();
-                const nextMessage: SiteInboxMessage = {
-                  id: `inbox-${Date.now()}`,
-                  senderName: 'New Contact',
-                  companyName: 'Company',
-                  email: 'contact@example.com',
-                  subject: 'New inquiry',
-                  message: 'Message content from website form.',
-                  receivedAt: now,
-                  status: 'new',
-                  source: 'website',
-                };
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsFetchingMessages(true);
+                  try {
+                    const response = await fetchMessages();
+                    if (response.success && response.data) {
+                      updateDashboardInbox('items', response.data);
+                    }
+                  } catch (error) {
+                    console.error('Failed to fetch messages:', error);
+                  } finally {
+                    setIsFetchingMessages(false);
+                  }
+                }}
+                disabled={isFetchingMessages}
+                className={`flex items-center gap-2 rounded-[10px] border px-3 py-2 text-xs font-medium transition-all ${
+                  isFetchingMessages
+                    ? 'border-white/14 bg-white/[0.04] text-white/50 cursor-not-allowed'
+                    : 'border-white/14 bg-white/[0.06] text-white hover:bg-white/[0.12]'
+                }`}
+              >
+                <RefreshCwIcon size={14} className={isFetchingMessages ? 'animate-spin' : ''} />
+                {isFetchingMessages ? 'Refreshing...' : 'Refresh'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const now = new Date().toISOString();
+                  const nextMessage: SiteInboxMessage = {
+                    id: `inbox-${Date.now()}`,
+                    senderName: 'New Contact',
+                    companyName: 'Company',
+                    email: 'contact@example.com',
+                    subject: 'New inquiry',
+                    message: 'Message content from website form.',
+                    receivedAt: now,
+                    status: 'new',
+                    source: 'website',
+                  };
 
-                updateDashboardInbox('items', [nextMessage, ...siteConfig.dashboard.inbox.items]);
-                setActiveMessageId(nextMessage.id);
-              }}
-              className={dashboardActionButtonSecondaryClass}
-            >
-              Add Test Message
-            </button>
+                  updateDashboardInbox('items', [nextMessage, ...siteConfig.dashboard.inbox.items]);
+                  setActiveMessageId(nextMessage.id);
+                }}
+                className={dashboardActionButtonSecondaryClass}
+              >
+                Add Test Message
+              </button>
+            </div>
           </div>
 
           <div className="mt-3 overflow-hidden rounded-[14px] border border-white/12 bg-black/20">
@@ -5779,7 +7556,7 @@ export const Dashboard: React.FC = () => {
                     }}
                     className={`inline-flex h-11 w-11 items-center justify-center rounded-[12px] border font-mono text-[10px] uppercase tracking-[0.14em] transition-all ${
                       active
-                        ? 'border-[#b6f45b]/46 bg-[#b6f45b]/18 text-[#d7ff9d]'
+                        ? 'border-[#000000]/46 bg-[#000000]/18 text-[#ffffff]'
                         : 'border-white/12 bg-white/[0.03] text-white/68 hover:bg-white/[0.08] hover:text-white'
                     }`}
                     title={workspace.label}
@@ -5791,11 +7568,33 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <div className="mt-auto flex flex-col gap-2 pt-3">
-              <button type="button" onClick={handleSaveChanges} title="Save changes" className="inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-[#b6f45b]/46 bg-[#b6f45b] text-[#0a0d11]">
-                <Save size={16} strokeWidth={1.9} />
+              <button type="button" onClick={handleSaveChanges} title="Save changes" className="inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-[#000000]/46 bg-[#000000] text-[#0a0d11]">
+                <SaveIcon size={16} strokeWidth={1.9} />
+              </button>
+              <button 
+                type="button" 
+                onClick={async () => {
+                  clearUploadFeedback();
+                  const result = await saveToAPI();
+                  if (result.success) {
+                    const storageInfo = result.message ? ` (${result.message})` : '';
+                    const msg = `Changes saved to API successfully!${storageInfo}`;
+                    setUploadMessage(msg);
+                    alert(msg); // <--- Added Alert so user definitely sees it
+                    setHasUnsavedChanges(false);
+                  } else {
+                    const errMsg = result.error || 'Failed to save to API.';
+                    setUploadError(errMsg);
+                    alert("Error: " + errMsg + "\n\n(Did you configure Upstash Redis on Vercel?)"); // <--- Added Alert
+                  }
+                }}
+                title="Save to API"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-[#3b82f6]/46 bg-[#3b82f6] text-white hover:bg-[#60a5fa] transition-colors"
+              >
+                <SaveIcon size={16} strokeWidth={1.9} />
               </button>
               <button type="button" onClick={handleOpenSite} title="Open site" className="inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-white/14 bg-white/[0.06] text-white/78 hover:bg-white/[0.12]">
-                <ExternalLink size={16} strokeWidth={1.9} />
+                <ExternalLinkIcon size={16} strokeWidth={1.9} />
               </button>
               <button
                 type="button"
@@ -5807,10 +7606,10 @@ export const Dashboard: React.FC = () => {
                 title="Reset defaults"
                 className="inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-white/14 bg-white/[0.06] text-white/78 hover:bg-white/[0.12]"
               >
-                <RotateCcw size={16} strokeWidth={1.9} />
+                <RotateCcwIcon size={16} strokeWidth={1.9} />
               </button>
               <button type="button" onClick={handleLogout} title="Logout" className="inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-[#ef4444]/38 bg-[#ef4444]/18 text-[#fecaca] hover:bg-[#ef4444]/28">
-                <LogOut size={16} strokeWidth={1.9} />
+                <LogOutIcon size={16} strokeWidth={1.9} />
               </button>
             </div>
           </aside>
@@ -5843,7 +7642,7 @@ export const Dashboard: React.FC = () => {
                       }}
                       className={`dashboard-nav-item inline-flex items-center gap-2 rounded-[999px] border px-3 py-2 text-left transition-all ${
                         active
-                          ? 'dashboard-nav-item-active border-[#b6f45b]/46 bg-[#b6f45b]/18 text-white shadow-[0_12px_28px_-20px_rgba(182,244,91,0.55)]'
+                          ? 'dashboard-nav-item-active border-[#000000]/46 bg-[#000000]/18 text-white shadow-[0_12px_28px_-20px_rgba(182,244,91,0.55)]'
                           : 'dashboard-nav-item-idle border-white/14 bg-white/[0.04] text-white/80 hover:border-white/24 hover:bg-white/[0.1]'
                       }`}
                     >
@@ -5865,7 +7664,7 @@ export const Dashboard: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Search workspace"
-                    className="w-full rounded-[999px] border border-white/14 bg-white/[0.06] px-4 py-2 text-[13px] text-white outline-none transition-all placeholder:text-white/38 focus:border-[#b6f45b]/52 focus:ring-2 focus:ring-[#b6f45b]/22"
+                    className="w-full rounded-[999px] border border-white/14 bg-white/[0.06] px-4 py-2 text-[13px] text-white outline-none transition-all placeholder:text-white/38 focus:border-[#000000]/52 focus:ring-2 focus:ring-[#000000]/22"
                   />
                 </label>
                 <div className="inline-flex items-center gap-2 rounded-[999px] border border-white/12 bg-white/[0.04] px-2 py-1.5">
@@ -5901,8 +7700,8 @@ export const Dashboard: React.FC = () => {
                 <p className="mt-1 text-xs text-white/58">Projects and articles</p>
               </div>
 
-              <div className="dashboard-kpi dashboard-kpi-primary rounded-[16px] border border-[#b6f45b]/36 bg-[#b6f45b]/14 p-2.5">
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#d7ff9d]">Unread Messages</p>
+              <div className="dashboard-kpi dashboard-kpi-primary rounded-[16px] border border-[#000000]/36 bg-[#000000]/14 p-2.5">
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#ffffff]">Unread Messages</p>
                 <p className="mt-1 text-xl font-semibold text-white">{stats.inboxUnread}</p>
                 <p className="mt-1 text-xs text-white/74">Leads waiting for follow-up</p>
               </div>
@@ -5926,6 +7725,27 @@ export const Dashboard: React.FC = () => {
               <button type="button" onClick={handleSaveChanges} className={dashboardActionButtonPrimaryClass}>
                 Save Changes
               </button>
+              <button 
+                type="button" 
+                onClick={async () => {
+                  clearUploadFeedback();
+                  const result = await saveToAPI();
+                  if (result.success) {
+                    const storageInfo = result.message ? ` (${result.message})` : '';
+                    const msg = `Changes saved to API successfully!${storageInfo} The live site will update automatically.`;
+                    setUploadMessage(msg);
+                    alert(msg);
+                    setHasUnsavedChanges(false);
+                  } else {
+                    const errMsg = result.error || 'Failed to save to API. Please try again.';
+                    setUploadError(errMsg);
+                    alert("Error: " + errMsg + "\n\n(Did you configure Upstash Redis on Vercel?)");
+                  }
+                }}
+                className={dashboardActionButtonApiClass}
+              >
+                Save to API
+              </button>
               <button type="button" onClick={handleOpenSite} className={dashboardActionButtonSecondaryClass}>
                 Open Site
               </button>
@@ -5946,12 +7766,35 @@ export const Dashboard: React.FC = () => {
             </div>
 
             <section className="mt-4 space-y-4">
-              {activeWorkspace !== 'site' && uploadError ? (
-                <div className={`rounded-[12px] border px-4 py-3 text-sm ${dashboardStatusFailureClass}`}>
-                  {uploadError}
+              {uploadError ? (
+                <div className={`rounded-[12px] border px-4 py-3 text-sm space-y-2 ${dashboardStatusFailureClass}`}>
+                  <div className="font-semibold">{uploadError}</div>
+                  {uploadError.includes('not configured') && (
+                    <div className="text-xs opacity-90 space-y-1">
+                      <p>📍 How to fix:</p>
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li>Set up <code className="bg-black/30 px-1 rounded text-[11px]">UPSTASH_REDIS_REST_URL</code> and <code className="bg-black/30 px-1 rounded text-[11px]">UPSTASH_REDIS_REST_TOKEN</code> environment variables</li>
+                        <li>OR set up <code className="bg-black/30 px-1 rounded text-[11px]">KV_REST_API_URL</code> and <code className="bg-black/30 px-1 rounded text-[11px]">KV_REST_API_TOKEN</code> for Vercel KV</li>
+                        <li>Redeploy your site</li>
+                      </ol>
+                      <p className="text-[10px] mt-2">See <code className="bg-black/30 px-1 rounded">QUICK_UPSTASH_SETUP.md</code> for detailed instructions.</p>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const diag = await getApiDiagnostics();
+                      setApiDiagnostics(diag);
+                      setActiveSettingsPanel('storage');
+                      setActiveWorkspace('settings');
+                    }}
+                    className="text-[10px] mt-2 px-2 py-1 rounded bg-white/10 hover:bg-white/20 font-mono"
+                  >
+                    View API Diagnostics →
+                  </button>
                 </div>
               ) : null}
-              {activeWorkspace !== 'site' && uploadMessage ? (
+              {uploadMessage ? (
                 <div className={`rounded-[12px] border px-4 py-3 text-sm ${dashboardStatusSuccessClass}`}>
                   {uploadMessage}
                 </div>
@@ -5969,6 +7812,4 @@ export const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-
-
 

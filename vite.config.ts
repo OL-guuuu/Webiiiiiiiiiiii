@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import {defineConfig, loadEnv} from 'vite';
 
-const FRAME_FILE_PATTERN = /^ezgif-frame-(\d{3})\.jpg$/i;
+const FRAME_FILE_PATTERN = /^ezgif-frame-(\d{3})\.avif$/i;
 
 function getFrameManifest() {
   try {

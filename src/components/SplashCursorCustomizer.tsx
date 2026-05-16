@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { SlidersHorizontal, RotateCcw, X } from 'lucide-react';
-import type { SplashCursorProps } from './SplashCursor';
+  import React, { useState } from 'react';
+  import { SlidersHorizontalIcon, RotateCcwIcon, XIcon } from './icons';
+  import type { SplashCursorProps } from './SplashCursor';
 
 export type SplashCursorTuning = Required<
   Pick<
@@ -121,7 +121,7 @@ export const SplashCursorCustomizer: React.FC<SplashCursorCustomizerProps> = ({
         className={`fixed right-5 bottom-5 z-[360] pointer-events-auto flex h-11 w-11 items-center justify-center rounded-[10px] border backdrop-blur-xl transition-all duration-300 hover:scale-[1.05] ${iconButtonClass}`}
         data-surface="form"
       >
-        {isOpen ? <X size={18} /> : <SlidersHorizontal size={18} />}
+        {isOpen ? <XIcon size={18} /> : <SlidersHorizontalIcon size={18} />}
       </button>
 
       {isOpen && (
@@ -142,7 +142,7 @@ export const SplashCursorCustomizer: React.FC<SplashCursorCustomizerProps> = ({
               onClick={onReset}
               className="inline-flex items-center gap-1 rounded-[8px] border border-current/20 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.15em] opacity-85 transition-opacity hover:opacity-100"
             >
-              <RotateCcw size={12} />
+              <RotateCcwIcon size={12} />
               Reset
             </button>
           </header>

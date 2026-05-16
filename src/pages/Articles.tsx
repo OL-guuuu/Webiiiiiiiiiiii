@@ -14,8 +14,8 @@ type PaginationItem = number | 'left-ellipsis' | 'right-ellipsis';
 const ALL_TOPICS_TOKEN = '__all';
 const ARTICLES_PER_PAGE = 9;
 
-const parseDateLabel = (value: string) => {
-  if (!value) return 'Undated';
+const parseDateLabel = (value: string, undatedLabel: string) => {
+  if (!value) return undatedLabel;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString('en-US', {
@@ -184,8 +184,8 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
   const dsComponents = designSystem.components;
   const layoutStyle = useMemo(() => {
     return {
-      maxWidth: `${foundation.layout.contentMaxWidthPx}px`,
-      paddingInline: 'clamp(1.25rem, 3vw, 2.75rem)',
+      maxWidth: 'var(--ds-layout-max-width)',
+      paddingInline: 'var(--site-shell-padding)',
       paddingTop: `calc(${foundation.spacing.sectionPaddingRem}rem + 2.5rem)`,
       paddingBottom: `${foundation.spacing.sectionPaddingRem}rem`,
       rowGap: `${foundation.spacing.gridGapRem}rem`,
@@ -262,7 +262,7 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
                 </span>
                 <span className="h-[3px] w-[3px] rounded-full bg-[#111217]/35" aria-hidden />
                 <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217]/65">
-                  {parseDateLabel(currentArticle.publishedAt)}
+                  {parseDateLabel(currentArticle.publishedAt, articlesPage.undatedLabel)}
                 </span>
                 <span className="h-[3px] w-[3px] rounded-full bg-[#111217]/35" aria-hidden />
                 <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217]/65">
@@ -352,7 +352,7 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
                       className="block px-5 py-5 transition-colors hover:bg-[#f7f9fd]"
                     >
                       <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#111217]/55">
-                        {parseDateLabel(article.publishedAt)} • {article.readingMinutes} {articlesPage.minReadLabel}
+                        {parseDateLabel(article.publishedAt, articlesPage.undatedLabel)} • {article.readingMinutes} {articlesPage.minReadLabel}
                       </p>
                       <p className="mt-2 text-[19px] font-medium leading-[1.2] text-[#111217]">{article.title}</p>
                       <p
@@ -495,7 +495,7 @@ export const Articles: React.FC<ArticlesPageProps> = ({ slug }) => {
                           </span>
                           <span className="h-[3px] w-[3px] rounded-full bg-[#111217]/28" aria-hidden />
                           <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
-                            {parseDateLabel(article.publishedAt)}
+                            {parseDateLabel(article.publishedAt, articlesPage.undatedLabel)}
                           </span>
                         </div>
 

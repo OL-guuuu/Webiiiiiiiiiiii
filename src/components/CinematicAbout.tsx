@@ -129,7 +129,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
 
   const handleBackNavigation = () => {
     window.dispatchEvent(new CustomEvent('toggle-navbar', { detail: { show: true } }));
-    window.dispatchEvent(new CustomEvent('nav-to-section', { detail: { section: 'home' } }));
+    window.dispatchEvent(new CustomEvent('nav-to-section', { detail: { section: 'home-sequence' } }));
   };
 
   const handleForwardNavigation = () => {
@@ -138,6 +138,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
   };
 
   const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (!isActive) return;
     event.stopPropagation();
 
     const scroller = containerRef.current;
@@ -165,10 +166,12 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
   };
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!isActive) return;
     touchStartYRef.current = event.touches[0]?.clientY ?? null;
   };
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!isActive) return;
     const startY = touchStartYRef.current;
     touchStartYRef.current = null;
     if (startY === null) return;
@@ -200,6 +203,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
   };
 
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (!isActive) return;
     const currentScrollTop = event.currentTarget.scrollTop;
 
     if (currentScrollTop < 72) {
@@ -247,38 +251,26 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
         isActive ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-10 opacity-0'
       }`}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(1200px_700px_at_12%_0%,rgba(11,15,24,0.08),transparent_62%),radial-gradient(900px_600px_at_95%_20%,rgba(24,39,70,0.06),transparent_66%),linear-gradient(180deg,#f2f5fb_0%,#f8fbff_58%,#eef3fa_100%)]" />
-
-      <div className="absolute inset-0 opacity-80">
-        <WebGLFog />
-      </div>
-
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_4%,rgba(255,255,255,0.66),transparent_38%),radial-gradient(circle_at_90%_96%,rgba(15,18,25,0.14),transparent_44%)]" />
+      {/* Solid white background */}
+      <div className="absolute inset-0 bg-white" />
 
       <div
         ref={containerRef}
         onWheel={handleWheel}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        onTouchMove={(event) => event.stopPropagation()}
+        onTouchMove={(event) => {
+          if (isActive) event.stopPropagation();
+        }}
         onScroll={handleScroll}
         className="relative z-[4] h-full overflow-y-auto overflow-x-hidden overscroll-y-contain"
       >
-        <div className="mx-auto w-full max-w-[1440px] px-5 pb-20 pt-24 sm:px-8 sm:pt-28 md:px-12 md:pb-28 md:pt-32 lg:px-16 lg:pb-32 lg:pt-36 xl:px-20 xl:pt-40">
+        <div className="site-shell pb-20 pt-24 sm:pt-28 md:pb-28 md:pt-32 lg:pb-32 lg:pt-36 xl:pt-40">
           <header className="mb-14 md:mb-16 lg:mb-20">
             <div className="grid gap-6 md:gap-8 lg:grid-cols-[minmax(220px,250px)_minmax(0,1fr)] lg:items-start lg:gap-10 xl:gap-12">
               <article className="relative max-w-[250px]">
                 <div
-                  className="pointer-events-none absolute -left-3 -top-4 h-20 w-20 rounded-full bg-[radial-gradient(circle_at_center,rgba(15,18,25,0.18),rgba(15,18,25,0))] blur-2xl"
-                  style={{ transform: `translateY(${-portraitDrift * 0.22}px)` }}
-                />
-                <div
-                  className="pointer-events-none absolute -bottom-3 -right-3 h-16 w-16 rounded-full bg-[radial-gradient(circle_at_center,rgba(52,92,166,0.2),rgba(52,92,166,0))] blur-2xl"
-                  style={{ transform: `translateY(${portraitDrift * 0.3}px)` }}
-                />
-
-                <div
-                  className="relative aspect-[4/5] w-full overflow-hidden rounded-[22px] border border-[#0f1219]/14 bg-white shadow-[0_20px_44px_-28px_rgba(15,18,25,0.65)]"
+                  className="relative aspect-square w-full overflow-hidden rounded-full border-2 border-gray-200 bg-white shadow-[0_20px_44px_-28px_rgba(0,0,0,0.15)]"
                   style={{ transform: `translateY(${portraitDrift * 0.32}px)` }}
                 >
                   {scene05.portraitImage ? (
@@ -288,28 +280,28 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                       className="h-full w-full object-cover object-center"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(145deg,#d7e0ef,#f4f7fd)] text-[clamp(2rem,7vw,3.4rem)] font-semibold tracking-[0.08em] text-[#0f1219]/56">
+                    <div className="flex h-full w-full items-center justify-center bg-gray-100 text-[clamp(2rem,7vw,3.4rem)] font-semibold tracking-[0.08em] text-gray-400">
                       {getInitials(displayName)}
                     </div>
                   )}
-                  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(15,18,25,0.02),rgba(15,18,25,0.16))]" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 to-black/5" />
                 </div>
               </article>
 
               <article
-                className="rounded-[26px] border border-[#0f1219]/12 bg-white/78 p-5 shadow-[0_20px_46px_-34px_rgba(15,18,25,0.38)] backdrop-blur-[1px] sm:p-6 md:p-8"
+                className="rounded-[26px] border border-gray-200 bg-white p-5 shadow-[0_20px_46px_-34px_rgba(0,0,0,0.1)] sm:p-6 md:p-8"
                 style={{
                   opacity: isActive ? 1 : 0,
                   transform: isActive ? `translateY(${-heroLift}px)` : 'translateY(18px)',
                   transition: 'transform 700ms ease-out, opacity 700ms ease-out',
                 }}
               >
-                <h1 className="text-[clamp(2rem,5.6vw,4rem)] leading-[1.04] tracking-[-0.025em] text-[#0f1219]">
+                <h1 className="text-[clamp(2rem,5.6vw,4rem)] leading-[1.04] tracking-[-0.025em] text-black">
                   {introHeading}
                 </h1>
 
                 {scene05.role.trim() ? (
-                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-[#0f1219]/56 sm:text-[11px]">
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-gray-800 sm:text-[11px]">
                     {scene05.role}
                   </p>
                 ) : null}
@@ -319,36 +311,40 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                     ? introParagraphs.map((paragraph, index) => (
                         <p
                           key={`${paragraph.slice(0, 28)}-${index}`}
-                          className="text-[1.04rem] leading-[1.72] text-[#0f1219]/78 sm:text-[1.1rem]"
+                          className="text-[1.04rem] leading-[1.72] text-gray-900 sm:text-[1.1rem]"
                         >
                           {paragraph}
                         </p>
                       ))
                     : (
-                      <p className="text-[1.04rem] leading-[1.72] text-[#0f1219]/78 sm:text-[1.1rem]">
+                      <p className="text-[1.04rem] leading-[1.72] text-gray-900 sm:text-[1.1rem]">
                         {scene05.visionText}
                       </p>
                     )}
                 </div>
 
                 {aboutSocialLinks.length > 0 ? (
-                  <div className="mt-7 flex flex-wrap items-center gap-2.5 sm:gap-3">
-                    {aboutSocialLinks.map((social) => {
+                  <div className="mt-7 flex flex-wrap items-center gap-5 text-[#0a0a0b]">
+                    {aboutSocialLinks.map((social, index) => {
                       const SocialIcon = getSocialIconComponent(social.icon);
 
                       return (
-                        <a
-                          key={social.id}
-                          href={social.href}
-                          onClick={(event) => handlePlaceholderLinkClick(event, social.href)}
-                          target={isPlaceholderHref(social.href) ? undefined : '_blank'}
-                          rel={isPlaceholderHref(social.href) ? undefined : 'noopener noreferrer'}
-                          aria-label={social.label}
-                          title={social.label}
-                          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#0f1219]/16 bg-white/88 text-[#0f1219]/72 shadow-[0_12px_22px_-20px_rgba(15,18,25,0.6)] transition-colors duration-200 hover:border-[#0f1219]/28 hover:bg-[#0f1219] hover:text-white"
-                        >
-                          <SocialIcon size={18} strokeWidth={1.6} />
-                        </a>
+                        <React.Fragment key={social.id}>
+                          <a
+                            href={social.href}
+                            onClick={(event) => handlePlaceholderLinkClick(event, social.href)}
+                            target={isPlaceholderHref(social.href) ? undefined : '_blank'}
+                            rel={isPlaceholderHref(social.href) ? undefined : 'noopener noreferrer'}
+                            aria-label={social.label}
+                            title={social.label}
+                            className="hover:opacity-60 transition-opacity duration-300 flex items-center justify-center"
+                          >
+                            <SocialIcon size={22} strokeWidth={1.5} />
+                          </a>
+                          {index < aboutSocialLinks.length - 1 ? (
+                            <span className="w-[1px] h-[18px] bg-[#0a0a0b]/30"></span>
+                          ) : null}
+                        </React.Fragment>
                       );
                     })}
                   </div>
@@ -371,7 +367,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
 
           <section className="mb-14 grid gap-8 md:gap-9 lg:grid-cols-[minmax(0,1.06fr)_minmax(0,0.94fr)] lg:items-start lg:gap-10">
             <article className="relative">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#0f1219]/58">{scene05.storyTitle}</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gray-800">{scene05.storyTitle}</p>
 
               <div className="mt-5 space-y-5">
                 {storyParagraphs.map((paragraph, index) => {
@@ -379,7 +375,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                   return (
                     <p
                       key={`${paragraph.slice(0, 28)}-${index}`}
-                      className="text-sm leading-relaxed text-[#0f1219]/80 transition-[transform,opacity] duration-700 ease-out md:text-[1rem] md:leading-[1.92]"
+                      className="text-sm leading-relaxed text-gray-900 transition-[transform,opacity] duration-700 ease-out md:text-[1rem] md:leading-[1.92]"
                       style={{
                         opacity: 0.2 + localReveal * 0.8,
                         transform: `translateX(${(1 - localReveal) * 22}px)`,
@@ -393,15 +389,15 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
               </div>
             </article>
 
-            <article className="relative rounded-[28px] border border-[#0f1219]/10 bg-white/58 p-4 md:p-5">
+            <article className="relative rounded-[28px] border border-gray-200 bg-white p-4 md:p-5 shadow-[0_20px_46px_-34px_rgba(0,0,0,0.08)]">
               <div className="mb-4 flex items-center gap-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#0f1219]/58">{scene05.skillsTitle}</p>
-                <span className="rounded-full border border-[#0f1219]/12 bg-[#0f1219]/6 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#0f1219]/62">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gray-800">{scene05.skillsTitle}</p>
+                <span className="rounded-full border border-gray-300 bg-gray-100 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-gray-900">
                   {skills.length}
                 </span>
               </div>
 
-              <div className="relative overflow-hidden rounded-[24px] border border-[#0f1219]/10 bg-[linear-gradient(140deg,rgba(255,255,255,0.92),rgba(234,241,251,0.82))] p-4 md:p-5">
+              <div className="relative overflow-hidden rounded-[24px] border border-gray-200 bg-gray-50 p-4 md:p-5">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white/64 to-transparent" />
 
                 <div className="relative flex flex-wrap gap-2.5">
@@ -412,7 +408,7 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                     return (
                       <span
                         key={`${skill}-${index}`}
-                        className="inline-flex rounded-full border border-[#0f1219]/12 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-[#0f1219]/82 shadow-[0_8px_18px_-14px_rgba(15,18,25,0.45)] transition-[transform,opacity] duration-500 ease-out md:text-xs"
+                        className="inline-flex rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[11px] font-medium text-gray-900 shadow-[0_8px_18px_-14px_rgba(0,0,0,0.1)] transition-[transform,opacity] duration-500 ease-out md:text-xs hover:border-black hover:bg-black hover:text-white"
                         style={{
                           opacity: 0.15 + localReveal * 0.85,
                           transform: `translate3d(0, ${(1 - localReveal) * 30}px, 0) rotate(${tilt}deg)`,
@@ -427,15 +423,15 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
               </div>
 
               {(scene05.aiText.trim() || aiTags.length > 0) ? (
-                <div className="mt-4 rounded-[20px] border border-[#0f1219]/10 bg-[linear-gradient(160deg,rgba(20,28,45,0.06),rgba(255,255,255,0.7))] p-4 md:p-5">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#0f1219]/58">{scene05.aiTitle}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-[#0f1219]/76 md:text-[0.95rem]">{scene05.aiText}</p>
+                <div className="mt-4 rounded-[20px] border border-gray-200 bg-gray-50 p-4 md:p-5">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gray-800">{scene05.aiTitle}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-900 md:text-[0.95rem]">{scene05.aiText}</p>
                   {aiTags.length > 0 ? (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {aiTags.map((tag, index) => (
                         <span
                           key={`${tag}-${index}`}
-                          className="rounded-full border border-[#0f1219]/12 bg-[#0f1219]/6 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[#0f1219]/62"
+                          className="rounded-full border border-gray-300 bg-gray-200 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-gray-900"
                         >
                           {tag}
                         </span>
@@ -450,10 +446,10 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
           {certifications.length > 0 ? (
             <section className="mb-12 md:mb-14">
               <div className="mb-4 flex items-center gap-3">
-                <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#0f1219]/58">
+                <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-gray-800">
                   {scene05.certificationsTitle}
                 </h2>
-                <span className="rounded-full border border-[#0f1219]/12 bg-[#0f1219]/6 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[#0f1219]/62">
+                <span className="rounded-full border border-gray-300 bg-gray-100 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-gray-900">
                   {certifications.length}
                 </span>
               </div>
@@ -468,35 +464,44 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                   return (
                     <article
                       key={item.id}
-                      className="grid gap-4 rounded-[22px] border border-[#0f1219]/12 bg-[linear-gradient(160deg,rgba(255,255,255,0.9),rgba(231,240,250,0.74))] p-4 shadow-[0_20px_42px_-34px_rgba(15,18,25,0.55)] transition-[transform,opacity] duration-700 ease-out md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+                      className="group relative grid gap-4 overflow-hidden rounded-[24px] border border-[#0f1219]/12 bg-white p-5 shadow-[0_24px_56px_-40px_rgba(10,15,25,0.18)] transition-[transform,opacity] duration-700 ease-out md:grid-cols-[minmax(0,1fr)_auto] md:items-center hover:border-[#0f1219]/35 hover:shadow-[0_30px_70px_-38px_rgba(10,15,25,0.28)]"
                       style={{
                         opacity: 0.24 + entryReveal * 0.76,
                         transform: `translateX(${(1 - entryReveal) * direction * 56}px)`,
                       }}
                     >
-                      <div>
-                        <div className="mb-2 flex items-center gap-3">
-                          <span className="rounded-full border border-[#0f1219]/12 bg-[#0f1219]/6 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[#0f1219]/62">
+                      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(15,18,25,0.06),rgba(15,18,25,0))] opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
+
+                      <div className="relative">
+                        <div className="mb-3 flex flex-wrap items-center gap-2.5">
+                          <span className="rounded-full border border-[#0f1219] bg-[#0f1219] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white">
                             {issuer}
                           </span>
                           {item.year ? (
-                            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#0f1219]/48">{item.year}</span>
+                            <span className="rounded-full border border-[#0f1219]/10 bg-white px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[#0f1219]/70">
+                              {item.year}
+                            </span>
                           ) : null}
                         </div>
 
-                        <h3 className="text-sm leading-snug text-[#0f1219] md:text-[1rem]">{item.title}</h3>
+                        <h3 className="text-[1.02rem] font-semibold leading-snug text-[#0f1219] md:text-[1.2rem]">
+                          {item.title}
+                        </h3>
                       </div>
 
-                      <div className="flex items-center justify-between gap-3 md:justify-end">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-[#0f1219]/12 bg-white">
+                      <div className="relative flex items-center justify-between gap-4 md:justify-end">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-[14px] border border-[#0f1219]/15 bg-white shadow-[0_12px_24px_-18px_rgba(15,18,25,0.5)]">
                             {item.logoSrc ? (
-                              <img src={item.logoSrc} alt={issuer} className="h-5 w-5 object-contain" />
+                              <img src={item.logoSrc} alt={issuer} className="h-7 w-7 object-contain" />
                             ) : (
-                              <span className="text-xs text-[#0f1219]/52">{issuerInitial}</span>
+                              <span className="text-sm font-semibold text-[#0f1219]/60">{issuerInitial}</span>
                             )}
                           </div>
-                          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#0f1219]/62">{issuer}</span>
+                          <div>
+                            <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#0f1219]/55">Issuer</p>
+                            <p className="text-sm font-semibold text-[#0f1219]">{issuer}</p>
+                          </div>
                         </div>
 
                         {item.credentialUrl && !isPlaceholderHref(item.credentialUrl) ? (
@@ -504,12 +509,12 @@ export const CinematicAbout: React.FC<CinematicAboutProps> = ({ progress }) => {
                             href={item.credentialUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="rounded-full border border-[#0f1219]/14 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[#0f1219]/72 transition-colors hover:bg-[#0f1219] hover:text-white"
+                            className="rounded-full border border-[#0f1219]/30 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[#0f1219] transition-colors hover:bg-[#0f1219] hover:border-[#0f1219] hover:text-white"
                           >
                             {scene05.credentialButtonLabel}
                           </a>
                         ) : (
-                          <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#0f1219]/48">
+                          <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#0f1219]/35">
                             {scene05.credentialButtonLabel}
                           </span>
                         )}

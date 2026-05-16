@@ -278,8 +278,24 @@ export const SiteMaterialSurface: React.FC = () => {
   useEffect(() => {
     let animationFrameId = 0;
     let previousTime = performance.now();
+    let isVisible = true;
+    let isRendering = false;
+
+    // Visibility-based optimization: pause rendering when not visible
+    const observer = new IntersectionObserver((entries) => {
+      isVisible = entries[0].isIntersecting;
+      if (isVisible && !isRendering) {
+        previousTime = performance.now();
+        render(previousTime);
+      }
+    }, { threshold: 0.1 });
 
     const render = (now: number) => {
+      if (!isVisible) {
+        isRendering = false;
+        return; // Complete RAF detachment
+      }
+      isRendering = true;
       animationFrameId = requestAnimationFrame(render);
 
       const gl = glRef.current;
@@ -330,8 +346,18 @@ export const SiteMaterialSurface: React.FC = () => {
       state.needsRender = false;
     };
 
-    animationFrameId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animationFrameId);
+    if (canvasRef.current) {
+      observer.observe(canvasRef.current);
+    }
+
+    // Explicitly kickstart the render
+    previousTime = performance.now();
+    render(previousTime);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      observer.disconnect();
+    };
   }, []);
 
   return (
